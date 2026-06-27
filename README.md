@@ -1,11 +1,13 @@
 # cartpole-robot
 
-A small `uv` project that demonstrates Gymnasium with:
+A `uv` project for MuJoCo cart-pole swing-up with a continuous cart-force action and TD3 training scripts.
 
-- `CartPole-v1`, the classic control cart-pole task.
-- `InvertedPendulum-v5`, a MuJoCo cart-pole style task.
+The environment is custom-built instead of using `CartPole-v1` or `InvertedPendulum-v5`:
 
-The example runs a random policy, prints episode lengths and rewards, and stays headless by default.
+- `CartPole-v1` uses a discrete left/right action, so it is not a TD3 target.
+- `InvertedPendulum-v5` is continuous, but it starts upright and terminates when the pole falls, so it is a balance task rather than swing-up.
+
+This project uses `CartPoleSwingUp-v0`, a MuJoCo environment where the pole starts near the downward position and the single action is continuous force applied to the cart.
 
 ## Setup
 
@@ -13,42 +15,46 @@ The example runs a random policy, prints episode lengths and rewards, and stays 
 uv sync
 ```
 
-## Run
+## Check The Environment
 
-Run both examples:
+Run the Stable-Baselines3 environment checker:
+
+```bash
+uv run cartpole-robot-check
+```
+
+## Random Rollout
+
+Run a random continuous-force policy:
 
 ```bash
 uv run cartpole-robot
 ```
 
-Run only classic CartPole:
+Open the MuJoCo viewer:
 
 ```bash
-uv run cartpole-robot --env cartpole --episodes 5
+uv run cartpole-robot --render --render-fps 25
 ```
 
-Run only the MuJoCo environment:
+## Train TD3
+
+Start training:
 
 ```bash
-uv run cartpole-robot --env mujoco
+uv run cartpole-robot-train --timesteps 300000
 ```
 
-Open a viewer window:
+The final model is saved to:
 
 ```bash
-uv run cartpole-robot --env mujoco --render
+models/td3_cartpole_swingup.zip
 ```
 
-Rendered runs are capped at about 30 FPS by default so the simulation is easier to watch. You can change that with:
+Watch a trained policy:
 
 ```bash
-uv run cartpole-robot --env cartpole --render --render-fps 15
+uv run cartpole-robot-watch --model models/td3_cartpole_swingup.zip
 ```
 
-Use `--render-fps 0` to run uncapped.
-
-You can also run the package module directly:
-
-```bash
-uv run python -m cartpole_robot --env both --seed 42
-```
+TensorBoard logs go into `runs/`.
