@@ -39,6 +39,14 @@ Open a viewer window:
 uv run cartpole-robot --env mujoco --render
 ```
 
+Rendered runs are capped at about 30 FPS by default so the simulation is easier to watch. You can change that with:
+
+```bash
+uv run cartpole-robot --env cartpole --render --render-fps 15
+```
+
+Use `--render-fps 0` to run uncapped.
+
 You can also run the package module directly:
 
 ```bash
