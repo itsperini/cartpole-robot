@@ -1,0 +1,19 @@
+[project]
+name = "cartpole-robot"
+version = "0.1.0"
+description = "A tiny Gymnasium demo for classic CartPole and MuJoCo inverted pendulum."
+readme = "README.md"
+authors = [
+    { name = "itsperini", email = "perinim.98@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "gymnasium[mujoco]>=1.3.0",
+]
+
+[project.scripts]
+cartpole-robot = "cartpole_robot:main"
+
+[build-system]
+requires = ["uv_build>=0.11.12,<0.12.0"]
+build-backend = "uv_build"
