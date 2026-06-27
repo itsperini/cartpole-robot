@@ -89,6 +89,49 @@ uv run tensorboard --logdir runs
 
 Then open `http://localhost:6006`.
 
+## World Model
+
+The world model is a separate PyTorch MLP ensemble trained from transition data. It does not replace TD3 yet; it learns to predict one step of the environment:
+
+```text
+input:  observation_t, action_t
+output: delta_observation_t, reward_t
+```
+
+Collect random-policy data:
+
+```bash
+uv run cartpole-robot-collect --episodes 200 --policy random --output datasets/swingup_random.npz
+```
+
+Collect data from the trained TD3 policy:
+
+```bash
+uv run cartpole-robot-collect \
+  --episodes 100 \
+  --policy td3 \
+  --action-noise 0.1 \
+  --output datasets/swingup_td3_noisy.npz
+```
+
+Train the ensemble:
+
+```bash
+uv run cartpole-robot-world-train \
+  --dataset datasets/swingup_random.npz \
+  --output world_models/cartpole_swingup_ensemble.pt
+```
+
+Evaluate one-step and multi-step prediction error:
+
+```bash
+uv run cartpole-robot-world-eval \
+  --dataset datasets/swingup_random.npz \
+  --model world_models/cartpole_swingup_ensemble.pt
+```
+
+World-model TensorBoard logs go into `runs/world_model/` and `runs/world_model_eval/`.
+
 ## Included Model
 
 This repo includes a trained policy:
@@ -117,6 +160,9 @@ uv run cartpole-robot                # random rollout, headless by default
 uv run cartpole-robot --render       # random rollout with MuJoCo viewer
 uv run cartpole-robot-train          # train TD3
 uv run cartpole-robot-watch          # render the trained best model
+uv run cartpole-robot-collect        # collect transition data
+uv run cartpole-robot-world-train    # train the MLP ensemble world model
+uv run cartpole-robot-world-eval     # evaluate the world model
 ```
 
 ## Project Layout
@@ -128,6 +174,10 @@ src/cartpole_robot/
   registration.py                 registers CartPoleSwingUp-v0
   train_td3.py                    TD3 training entry point
   watch.py                        loads and renders a trained TD3 policy
+  collect_data.py                 saves transition datasets from random or TD3 policies
+  world_model.py                  MLP ensemble, normalization, checkpoint helpers
+  train_world_model.py            world-model training entry point
+  eval_world_model.py             one-step and rollout evaluation metrics
   rollout.py                      random-policy rollout helper
   check_env.py                    Stable-Baselines3 env checker
   __main__.py                     enables python -m cartpole_robot

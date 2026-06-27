@@ -12,3 +12,7 @@ wheels/
 
 # Local training logs
 runs/
+
+# Local generated datasets and learned world models
+datasets/
+world_models/
