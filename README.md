@@ -45,16 +45,22 @@ Start training:
 uv run cartpole-robot-train --timesteps 300000
 ```
 
-The final model is saved to:
+The trainer saves checkpoints under `models/checkpoints/` and the final model to:
 
 ```bash
 models/td3_cartpole_swingup.zip
 ```
 
-Watch a trained policy:
+This repo includes a trained best model at:
 
 ```bash
-uv run cartpole-robot-watch --model models/td3_cartpole_swingup.zip
+models/best/td3_cartpole_swingup_best_20260628-012620.zip
+```
+
+Watch the included policy:
+
+```bash
+uv run cartpole-robot-watch
 ```
 
 TensorBoard logs go into `runs/`.

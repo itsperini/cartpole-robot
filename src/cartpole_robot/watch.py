@@ -14,7 +14,13 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Watch a trained TD3 policy in the MuJoCo cart-pole swing-up environment."
     )
-    parser.add_argument("--model", type=Path, default=Path("models/td3_cartpole_swingup.zip"))
+    parser.add_argument(
+        "--model",
+        type=Path,
+        default=Path(
+            "models/best/td3_cartpole_swingup_best_20260628-012620.zip"
+        ),
+    )
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--max-steps", type=int, default=500)
     parser.add_argument("--seed", type=int, default=7)
