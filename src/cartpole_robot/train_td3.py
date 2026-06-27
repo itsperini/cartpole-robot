@@ -23,7 +23,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--model-dir", type=Path, default=Path("models"))
     parser.add_argument("--log-dir", type=Path, default=Path("runs"))
     parser.add_argument("--resume", type=Path, default=None)
-    parser.add_argument("--action-noise", type=float, default=0.3)
+    parser.add_argument(
+        "--action-noise",
+        type=float,
+        default=0.3,
+        help="Stddev for exploration noise in normalized action units.",
+    )
     parser.add_argument("--learning-starts", type=int, default=10_000)
     parser.add_argument("--batch-size", type=int, default=256)
     parser.add_argument("--buffer-size", type=int, default=1_000_000)

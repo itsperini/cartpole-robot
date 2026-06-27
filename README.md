@@ -1,13 +1,13 @@
 # cartpole-robot
 
-A `uv` project for MuJoCo cart-pole swing-up with a continuous cart-force action and TD3 training scripts.
+A `uv` project for MuJoCo cart-pole swing-up with a normalized continuous action and TD3 training scripts.
 
 The environment is custom-built instead of using `CartPole-v1` or `InvertedPendulum-v5`:
 
 - `CartPole-v1` uses a discrete left/right action, so it is not a TD3 target.
 - `InvertedPendulum-v5` is continuous, but it starts upright and terminates when the pole falls, so it is a balance task rather than swing-up.
 
-This project uses `CartPoleSwingUp-v0`, a MuJoCo environment where the pole starts near the downward position and the single action is continuous force applied to the cart.
+This project uses `CartPoleSwingUp-v0`, a MuJoCo environment where the pole starts near the downward position. The single action is normalized to `[-1, 1]` for TD3 and mapped internally to cart force with a default force limit of `10`.
 
 ## Setup
 
@@ -25,7 +25,7 @@ uv run cartpole-robot-check
 
 ## Random Rollout
 
-Run a random continuous-force policy:
+Run a random normalized-action policy:
 
 ```bash
 uv run cartpole-robot

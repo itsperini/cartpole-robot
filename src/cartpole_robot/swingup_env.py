@@ -21,11 +21,12 @@ def default_xml_path() -> str:
 
 
 class CartPoleSwingUpEnv(MujocoEnv, utils.EzPickle):
-    """Continuous-force MuJoCo cart-pole swing-up task.
+    """Continuous-action MuJoCo cart-pole swing-up task.
 
-    The single action is the horizontal force applied to the cart. The pole starts
-    near the downward position, and the reward encourages swinging it upright
-    while keeping the cart centered and avoiding excessive control effort.
+    The single policy action is normalized to ``[-1, 1]`` and mapped to the
+    horizontal force applied to the cart. The pole starts near the downward
+    position, and the reward encourages swinging it upright while keeping the
+    cart centered and avoiding excessive control effort.
     """
 
     metadata = {
@@ -78,7 +79,12 @@ class CartPoleSwingUpEnv(MujocoEnv, utils.EzPickle):
         )
 
         self.model.actuator_ctrlrange[0, :] = [-self.force_limit, self.force_limit]
-        self._set_action_space()
+        self.action_space = spaces.Box(
+            low=-1.0,
+            high=1.0,
+            shape=(1,),
+            dtype=np.float32,
+        )
 
         self.observation_structure = {
             "cart_position": 1,
@@ -88,18 +94,25 @@ class CartPoleSwingUpEnv(MujocoEnv, utils.EzPickle):
         }
 
     def step(self, action: np.ndarray):
-        clipped_action = np.clip(action, self.action_space.low, self.action_space.high)
-        self.do_simulation(clipped_action, self.frame_skip)
+        normalized_action = np.asarray(action, dtype=np.float32)
+        normalized_action = np.clip(
+            normalized_action,
+            self.action_space.low,
+            self.action_space.high,
+        )
+        force = normalized_action * self.force_limit
+        self.do_simulation(force, self.frame_skip)
 
         observation = self._get_obs()
-        reward, reward_info = self._reward(observation, clipped_action)
+        reward, reward_info = self._reward(observation, normalized_action)
         terminated = self._is_terminated(observation)
 
         if self.render_mode == "human":
             self.render()
 
         info = {
-            "force": float(clipped_action[0]),
+            "action_normalized": float(normalized_action[0]),
+            "force": float(force[0]),
             **reward_info,
         }
 
@@ -143,7 +156,7 @@ class CartPoleSwingUpEnv(MujocoEnv, utils.EzPickle):
     def _reward(
         self,
         observation: np.ndarray,
-        action: np.ndarray,
+        normalized_action: np.ndarray,
     ) -> tuple[float, dict[str, float]]:
         x_position, x_velocity, _, pole_cos, pole_angular_velocity = observation
 
@@ -152,7 +165,7 @@ class CartPoleSwingUpEnv(MujocoEnv, utils.EzPickle):
         velocity_penalty = 0.01 * float(x_velocity**2) + 0.001 * float(
             pole_angular_velocity**2
         )
-        action_penalty = 0.001 * float((action[0] / self.force_limit) ** 2)
+        action_penalty = 0.001 * float(normalized_action[0] ** 2)
 
         near_upright = float(pole_cos > np.cos(0.2))
         stable_bonus = near_upright * float(abs(pole_angular_velocity) < 1.0)

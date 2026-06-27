@@ -90,7 +90,7 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     print(f"\n{ENV_ID}")
     print(f"  observation space: {env.observation_space}")
-    print(f"  action space:      {env.action_space}  # continuous cart force")
+    print(f"  action space:      {env.action_space}  # normalized cart force")
 
     try:
         for episode in range(1, args.episodes + 1):

@@ -12,6 +12,6 @@ def main() -> None:
         check_env(env, warn=True, skip_render_check=True)
         print("Environment check passed.")
         print(f"Observation space: {env.observation_space}")
-        print(f"Action space:      {env.action_space}  # continuous cart force")
+        print(f"Action space:      {env.action_space}  # normalized cart force")
     finally:
         env.close()
