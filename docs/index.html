@@ -212,6 +212,10 @@
         padding: 8px;
       }
 
+      .architecture-notes {
+        margin-top: 16px;
+      }
+
       svg text {
         font-family:
           Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -467,6 +471,157 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
           interpretable, and already close to the real hardware sensors. Latent-space
           models become more important once we add camera frames or other high-dimensional
           observations.
+        </div>
+      </section>
+
+      <section>
+        <h2>Current World Model Architecture</h2>
+        <p>
+          The current model is a supervised one-step dynamics ensemble. Each member sees
+          the compact state plus the normalized cart-force action and predicts the next
+          state change plus reward. The ensemble average is the prediction; the spread
+          between members is the first uncertainty signal.
+        </p>
+        <div class="diagram" aria-label="Current world model architecture diagram">
+          <svg width="1060" height="620" viewBox="0 0 1060 620" role="img">
+            <defs>
+              <marker
+                id="wmArrow"
+                markerWidth="10"
+                markerHeight="8"
+                refX="9"
+                refY="4"
+                orient="auto"
+              >
+                <path d="M0,0 L10,4 L0,8 Z" fill="#526071"></path>
+              </marker>
+            </defs>
+
+            <text x="40" y="34" font-size="16" font-weight="800">Input at time t</text>
+            <rect x="40" y="54" width="205" height="88" rx="8" fill="#dbeafe" stroke="#2563eb"></rect>
+            <text x="142" y="87" text-anchor="middle" font-weight="800">observation</text>
+            <text x="142" y="111" text-anchor="middle" font-size="13">
+              x, x_dot, sin(theta),
+            </text>
+            <text x="142" y="130" text-anchor="middle" font-size="13">cos(theta), theta_dot</text>
+
+            <rect x="40" y="178" width="205" height="72" rx="8" fill="#ccfbf1" stroke="#0f766e"></rect>
+            <text x="142" y="208" text-anchor="middle" font-weight="800">action</text>
+            <text x="142" y="232" text-anchor="middle" font-size="13">normalized force [-1, 1]</text>
+
+            <path d="M245 98 H308" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <path d="M245 214 H308" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="308" y="112" width="170" height="88" rx="8" fill="#f8fafc" stroke="#94a3b8"></rect>
+            <text x="393" y="144" text-anchor="middle" font-weight="800">concatenate</text>
+            <text x="393" y="169" text-anchor="middle" font-size="13">[obs_t, action_t]</text>
+            <text x="393" y="188" text-anchor="middle" font-size="13">6 input values</text>
+
+            <path d="M478 156 H548" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="548" y="112" width="185" height="88" rx="8" fill="#fef3c7" stroke="#d97706"></rect>
+            <text x="640" y="144" text-anchor="middle" font-weight="800">standardize input</text>
+            <text x="640" y="169" text-anchor="middle" font-size="13">input_mean</text>
+            <text x="640" y="188" text-anchor="middle" font-size="13">input_std</text>
+
+            <path d="M733 156 H800" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="800" y="50" width="220" height="210" rx="8" fill="#ede9fe" stroke="#7c3aed"></rect>
+            <text x="910" y="82" text-anchor="middle" font-weight="800">MLP ensemble</text>
+            <text x="910" y="106" text-anchor="middle" font-size="13">5 members by default</text>
+
+            <rect x="825" y="126" width="170" height="28" rx="6" fill="#ffffff" stroke="#c4b5fd"></rect>
+            <text x="910" y="146" text-anchor="middle" font-size="13">Linear 6 -> 256 + ReLU</text>
+            <rect x="825" y="164" width="170" height="28" rx="6" fill="#ffffff" stroke="#c4b5fd"></rect>
+            <text x="910" y="184" text-anchor="middle" font-size="13">Linear 256 -> 256 + ReLU</text>
+            <rect x="825" y="202" width="170" height="28" rx="6" fill="#ffffff" stroke="#c4b5fd"></rect>
+            <text x="910" y="222" text-anchor="middle" font-size="13">Linear 256 -> 6</text>
+            <text x="910" y="250" text-anchor="middle" font-size="12" fill="#526071">
+              repeated with bootstrap samples
+            </text>
+
+            <text x="40" y="315" font-size="16" font-weight="800">Training target</text>
+            <rect x="40" y="334" width="205" height="82" rx="8" fill="#fee2e2" stroke="#dc2626"></rect>
+            <text x="142" y="365" text-anchor="middle" font-weight="800">target</text>
+            <text x="142" y="389" text-anchor="middle" font-size="13">delta_obs = next_obs - obs</text>
+            <text x="142" y="408" text-anchor="middle" font-size="13">plus reward</text>
+
+            <path d="M245 375 H308" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="308" y="334" width="170" height="82" rx="8" fill="#fef3c7" stroke="#d97706"></rect>
+            <text x="393" y="365" text-anchor="middle" font-weight="800">standardize target</text>
+            <text x="393" y="389" text-anchor="middle" font-size="13">target_mean</text>
+            <text x="393" y="408" text-anchor="middle" font-size="13">target_std</text>
+
+            <path d="M478 375 H548" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="548" y="334" width="185" height="82" rx="8" fill="#dcfce7" stroke="#16a34a"></rect>
+            <text x="640" y="365" text-anchor="middle" font-weight="800">MSE loss</text>
+            <text x="640" y="389" text-anchor="middle" font-size="13">prediction vs target</text>
+            <text x="640" y="408" text-anchor="middle" font-size="13">logged to TensorBoard</text>
+
+            <path
+              d="M733 375 C815 375 870 320 900 260"
+              fill="none"
+              stroke="#526071"
+              stroke-width="2"
+              marker-end="url(#wmArrow)"
+            ></path>
+
+            <text x="40" y="475" font-size="16" font-weight="800">Prediction output</text>
+            <path d="M910 260 V318" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="800" y="318" width="220" height="72" rx="8" fill="#fce7f3" stroke="#be185d"></rect>
+            <text x="910" y="347" text-anchor="middle" font-weight="800">unstandardize output</text>
+            <text x="910" y="371" text-anchor="middle" font-size="13">delta_obs, reward</text>
+
+            <rect x="548" y="462" width="185" height="88" rx="8" fill="#e0f2fe" stroke="#0284c7"></rect>
+            <text x="640" y="494" text-anchor="middle" font-weight="800">reconstruct next state</text>
+            <text x="640" y="519" text-anchor="middle" font-size="13">next_obs = obs + delta_obs</text>
+            <text x="640" y="538" text-anchor="middle" font-size="13">reward is predicted directly</text>
+
+            <path
+              d="M800 354 C745 408 710 440 690 462"
+              fill="none"
+              stroke="#526071"
+              stroke-width="2"
+              marker-end="url(#wmArrow)"
+            ></path>
+            <path
+              d="M245 98 C355 520 445 506 548 506"
+              fill="none"
+              stroke="#94a3b8"
+              stroke-width="2"
+              stroke-dasharray="6 6"
+              marker-end="url(#wmArrow)"
+            ></path>
+            <text x="396" y="526" text-anchor="middle" font-size="12" fill="#526071">
+              original obs_t is added back
+            </text>
+
+            <path d="M733 506 H800" stroke="#526071" stroke-width="2" marker-end="url(#wmArrow)"></path>
+            <rect x="800" y="462" width="220" height="88" rx="8" fill="#ecfeff" stroke="#0891b2"></rect>
+            <text x="910" y="494" text-anchor="middle" font-weight="800">ensemble summary</text>
+            <text x="910" y="519" text-anchor="middle" font-size="13">mean = prediction</text>
+            <text x="910" y="538" text-anchor="middle" font-size="13">std = disagreement</text>
+          </svg>
+        </div>
+        <div class="grid three architecture-notes">
+          <div class="card">
+            <h3>Input</h3>
+            <p>
+              Six values: five observation dimensions plus one normalized continuous
+              action.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Network</h3>
+            <p>
+              Five independently trained MLP members by default, each with two hidden
+              layers of 256 ReLU units.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Output</h3>
+            <p>
+              Six values: five observation deltas plus one reward prediction. Ensemble
+              disagreement estimates uncertainty.
+            </p>
+          </div>
         </div>
       </section>
 
