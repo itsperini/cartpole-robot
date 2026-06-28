@@ -18,12 +18,8 @@ dependencies = [
 [project.scripts]
 cartpole-robot = "cartpole_robot.rollout:main"
 cartpole-robot-check = "cartpole_robot.check_env:main"
-cartpole-robot-collect = "cartpole_robot.collect_data:main"
 cartpole-robot-train = "cartpole_robot.train_td3:main"
 cartpole-robot-watch = "cartpole_robot.watch:main"
-cartpole-robot-world-eval = "cartpole_robot.eval_world_model:main"
-cartpole-robot-world-train = "cartpole_robot.train_world_model:main"
-cartpole-robot-world-viz = "cartpole_robot.visualize_world_model:main"
 
 [build-system]
 requires = ["uv_build>=0.11.12,<0.12.0"]
