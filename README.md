@@ -144,7 +144,9 @@ The visualization command creates:
 
 - trajectory overlays: true state/reward vs predicted state/reward
 - uncertainty bands: ensemble standard deviation around predictions
-- pole phase plots: pole angle vs angular velocity
+- angle overlays: pole angle, angular velocity, and cart position over time
+- error heatmaps: per-component absolute error over the rollout
+- uncertainty/error plots: ensemble disagreement compared with actual prediction error
 - horizon-error plots: recursive prediction error as the rollout gets longer
 
 World-model TensorBoard logs go into `runs/world_model/` and `runs/world_model_eval/`.
