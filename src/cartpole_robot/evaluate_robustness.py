@@ -31,9 +31,11 @@ from cartpole_robot.robustness import (
 DEFAULT_SCENARIOS = [
     "clean",
     "sensor_noise",
+    "friction",
     "delay",
     "dynamics",
     "pushes",
+    "hardware_mild",
     "combined",
 ]
 

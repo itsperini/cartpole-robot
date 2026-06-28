@@ -159,9 +159,11 @@ The robust evaluator runs the same policy across these scenarios:
 ```text
 clean          no extra stressors
 sensor_noise   encoder-like observation noise and small action noise
+friction       randomized rail/hinge damping and dry friction
 delay          observation and action delay
 dynamics       randomized mass, damping, friction, gravity, and force limit
 pushes         repeated cart/pole velocity impulses during the episode
+hardware_mild  dynamics, friction, noise, force-limit variation, and pushes, without delay
 combined       a moderate mix of noise, delay, dynamics, and pushes
 ```
 
@@ -195,6 +197,31 @@ This is good enough to keep as a push-recovery checkpoint, but not a general
 sim2real solution yet. Delay and combined stressors still need their own training
 chapter.
 
+The first hardware-randomized policy is SAC fine-tuned with
+`configs/algorithms/sac_robust_hardware_mild.toml`:
+
+```bash
+uv run cartpole-robot-train \
+  --config configs/algorithms/sac_robust_hardware_mild.toml \
+  --resume models/best/sac_cartpole_swingup_best_20260629-005105.zip
+```
+
+Current SAC hardware-randomized result, evaluated over 20 episodes:
+
+```text
+scenario       success  reward   upright  stable  termination  mean |force|
+clean          100%     1381.39   90.1%    90.1%       0%          0.971
+friction       100%     1365.92   88.9%    88.7%       0%          1.437
+dynamics       100%     1358.86   88.4%    88.2%       0%          1.269
+pushes         100%     1293.79   82.4%    79.8%       0%          2.227
+hardware_mild  100%     1321.24   85.4%    84.5%       0%          2.609
+combined        75%      955.28   60.8%    21.9%       5%          7.851
+```
+
+PPO was also tested with `configs/algorithms/ppo_robust_hardware_mild.toml`, but
+it was not promoted because it improved friction/hardware robustness while
+reducing push recovery. SAC is the current best hardware-randomized candidate.
+
 ## Included Models
 
 This repo includes trained policies:
@@ -202,6 +229,7 @@ This repo includes trained policies:
 ```bash
 models/best/td3_cartpole_swingup_best_20260628-012620.zip
 models/best/sac_cartpole_swingup_best_20260629-005105.zip
+models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip
 models/best/ppo_cartpole_swingup_best_20260629-010531.zip
 models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip
 ```
@@ -226,6 +254,14 @@ Watch the PPO push-recovery policy in the clean viewer:
 uv run cartpole-robot-watch \
   --algo ppo \
   --model models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip
+```
+
+Watch the SAC hardware-randomized policy:
+
+```bash
+uv run cartpole-robot-watch \
+  --algo sac \
+  --model models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip
 ```
 
 Watch another checkpoint:

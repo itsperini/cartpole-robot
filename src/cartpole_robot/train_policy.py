@@ -334,16 +334,8 @@ def load_resume_kwargs(
     env,
     tensorboard_dir: Path,
 ) -> dict[str, Any]:
-    kwargs: dict[str, Any] = {
-        "env": env,
-        "tensorboard_log": str(tensorboard_dir),
-        "device": config["device"],
-    }
-
-    if algorithm == "td3":
-        action_dim = env.action_space.shape[-1]
-        kwargs["action_noise"] = make_action_noise(config, action_dim)
-
+    kwargs = make_model_kwargs(algorithm, config, env, tensorboard_dir)
+    kwargs.pop("policy", None)
     return kwargs
 
 

@@ -704,6 +704,16 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Fine-tune SAC for hardware randomization</h3>
+              <p>
+                Added friction and <code>hardware_mild</code> scenarios, then fine-tuned
+                SAC against mass, damping, friction, force-limit, gravity, noise, and
+                push variation.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -776,8 +786,9 @@
           <div class="card">
             <h3>Physical variation</h3>
             <p>
-              The <code>dynamics</code> scenario randomizes cart mass, pole mass, joint
-              damping, friction loss, gravity, and force limit.
+              The <code>friction</code> scenario isolates rail and hinge friction. The
+              <code>dynamics</code> scenario adds mass, damping, gravity, and force-limit
+              variation.
             </p>
           </div>
           <div class="card">
@@ -860,6 +871,35 @@
               upright through the recorded rollout.
             </figcaption>
           </figure>
+        </div>
+        <h3 class="stack-gap">Hardware randomization</h3>
+        <p>
+          Since the firmware can choose the command interface, the simulator can keep a
+          normalized action while the hardware controller later maps that to force,
+          velocity, or acceleration. The next useful sim step is therefore parameter
+          randomization: friction, damping, mass, force limits, small sensor/action noise,
+          and pushes.
+        </p>
+        <div class="grid two stack-gap">
+          <figure>
+            <img
+              src="assets/sac_hardware_mild_robustness.png"
+              alt="Robustness chart for the SAC hardware-randomized policy"
+            />
+            <figcaption>
+              SAC hardware-randomized checkpoint evaluated across clean, noisy, friction,
+              delayed, randomized, pushed, hardware-mild, and combined scenarios.
+            </figcaption>
+          </figure>
+          <div class="card">
+            <h3>Current best hardware candidate</h3>
+            <p>
+              SAC fine-tuned under <code>hardware_mild</code> reaches 100% success on
+              clean, friction, dynamics, pushes, and hardware-mild evaluation. It is the
+              best current candidate for cautious state-based hardware transfer. Delay
+              remains the main unsolved weakness and should be trained separately.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -1009,10 +1049,16 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
   --resume models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
           </div>
           <div class="card">
+            <h3>Train hardware randomization</h3>
+            <pre><code>uv run cartpole-robot-train \
+  --config configs/algorithms/sac_robust_hardware_mild.toml \
+  --resume models/best/sac_cartpole_swingup_best_20260629-005105.zip</code></pre>
+          </div>
+          <div class="card">
             <h3>Watch a trained policy</h3>
             <pre><code>uv run cartpole-robot-watch \
-  --algo ppo \
-  --model models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip</code></pre>
+  --algo sac \
+  --model models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip</code></pre>
           </div>
           <div class="card">
             <h3>Run a random rollout</h3>
