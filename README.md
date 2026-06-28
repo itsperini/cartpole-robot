@@ -4,6 +4,8 @@ MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized contin
 
 This is not the standard `CartPole-v1` task. The goal is to start with the pole hanging downward, apply horizontal force to the cart, swing the pole upright, and stabilize it there.
 
+For the research roadmap from this simulator to world models, vision, ROS 2 hardware, and VLA-style systems, open [docs/index.html](docs/index.html).
+
 ## Why Custom
 
 - `CartPole-v1` has a discrete action space, so it is not suitable for TD3.
