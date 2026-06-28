@@ -132,6 +132,18 @@ uv run cartpole-robot-compare \
 
 This writes a markdown table and plot under `artifacts/comparisons/`.
 
+Record a video from any trained policy:
+
+```bash
+uv run cartpole-robot-record \
+  --algo ppo \
+  --model models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip \
+  --scenario pushes \
+  --seed 16 \
+  --output docs/assets/ppo_robust_push_disturbance.mp4 \
+  --poster docs/assets/ppo_robust_push_disturbance_poster.png
+```
+
 ## Robustness Evaluation
 
 Evaluate a trained policy against first-pass sim2real stress tests:
@@ -165,6 +177,11 @@ The trainer can also run inside a robustness scenario. The first useful target i
 `configs/algorithms/ppo_robust_pushes.toml`, which fine-tunes PPO under repeated
 push impulses so the policy practices recovery before hardware work.
 
+Only PPO has been fine-tuned with the push scenario so far. That was deliberate:
+TD3 and SAC already reached 100% success on the 20-episode push evaluation, while
+clean PPO reached 75%. PPO was also the lowest-effort solved policy, so it was the
+most interesting first candidate for push-specific recovery training.
+
 Current PPO push-recovery result, evaluated over 20 episodes:
 
 ```text
@@ -184,6 +201,7 @@ This repo includes trained policies:
 
 ```bash
 models/best/td3_cartpole_swingup_best_20260628-012620.zip
+models/best/sac_cartpole_swingup_best_20260629-005105.zip
 models/best/ppo_cartpole_swingup_best_20260629-010531.zip
 models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip
 ```
@@ -231,6 +249,7 @@ uv run cartpole-robot                # random rollout, headless by default
 uv run cartpole-robot --render       # random rollout with MuJoCo viewer
 uv run cartpole-robot-train          # train TD3 by default, or choose --algo sac/ppo
 uv run cartpole-robot-eval           # evaluate TD3/SAC/PPO with robotics metrics
+uv run cartpole-robot-record         # record policy videos, including robust scenarios
 uv run cartpole-robot-robust-eval    # evaluate clean/noisy/delayed/randomized scenarios
 uv run cartpole-robot-compare        # compare saved evaluation JSON reports
 uv run cartpole-robot-watch          # render a trained TD3/SAC/PPO model
@@ -247,6 +266,7 @@ src/cartpole_robot/
   train_policy.py                 TD3/SAC/PPO training entry point
   train_td3.py                    compatibility wrapper for the policy trainer
   evaluate_policy.py              reward, stability, and effort metrics
+  record_policy.py                MP4 recorder for policy and robustness videos
   evaluate_robustness.py          clean/noisy/delayed/randomized robustness reports
   compare_results.py              markdown and plot summaries from eval reports
   robustness.py                   sim2real stress-test wrappers and scenarios

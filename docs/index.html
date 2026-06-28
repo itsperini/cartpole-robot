@@ -814,6 +814,53 @@
             </p>
           </div>
         </div>
+        <h3 class="stack-gap">Disturbance rollouts</h3>
+        <p>
+          These videos use the same seed and the same <code>pushes</code> scenario. The
+          overlay flashes when the simulator injects a cart/pole velocity impulse.
+        </p>
+        <div class="grid two stack-gap">
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_push_disturbance_poster.png">
+              <source src="assets/td3_push_disturbance.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              TD3 was not push-fine-tuned here, but the clean-trained policy survives
+              this disturbance rollout with aggressive control.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/sac_push_disturbance_poster.png">
+              <source src="assets/sac_push_disturbance.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              SAC also survives the same pushed rollout, matching the 20-episode push
+              evaluation where it was already strong.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/ppo_clean_push_disturbance_poster.png">
+              <source src="assets/ppo_clean_push_disturbance.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              Clean PPO is the useful failure case: on this seed it loses the cart after
+              repeated pushes, which made PPO the first robust-training target.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/ppo_robust_push_disturbance_poster.png">
+              <source src="assets/ppo_robust_push_disturbance.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              Push-trained PPO handles the same disturbance sequence and keeps the pole
+              upright through the recorded rollout.
+            </figcaption>
+          </figure>
+        </div>
       </section>
 
       <section>

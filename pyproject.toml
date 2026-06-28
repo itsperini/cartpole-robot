@@ -9,8 +9,10 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "gymnasium[mujoco]>=1.3.0",
+    "imageio>=2.37.0",
     "imageio-ffmpeg>=0.6.0",
     "matplotlib>=3.11.0",
+    "pillow>=12.0.0",
     "stable-baselines3>=2.9.0",
     "tensorboard>=2.20.0",
 ]
@@ -20,6 +22,7 @@ cartpole-robot = "cartpole_robot.rollout:main"
 cartpole-robot-check = "cartpole_robot.check_env:main"
 cartpole-robot-compare = "cartpole_robot.compare_results:main"
 cartpole-robot-eval = "cartpole_robot.evaluate_policy:main"
+cartpole-robot-record = "cartpole_robot.record_policy:main"
 cartpole-robot-robust-eval = "cartpole_robot.evaluate_robustness:main"
 cartpole-robot-train = "cartpole_robot.train_policy:main"
 cartpole-robot-watch = "cartpole_robot.watch:main"

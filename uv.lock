@@ -21,8 +21,10 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "gymnasium", extra = ["mujoco"] },
+    { name = "imageio" },
     { name = "imageio-ffmpeg" },
     { name = "matplotlib" },
+    { name = "pillow" },
     { name = "stable-baselines3" },
     { name = "tensorboard" },
 ]
@@ -30,8 +32,10 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "gymnasium", extras = ["mujoco"], specifier = ">=1.3.0" },
+    { name = "imageio", specifier = ">=2.37.0" },
     { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "matplotlib", specifier = ">=3.11.0" },
+    { name = "pillow", specifier = ">=12.0.0" },
     { name = "stable-baselines3", specifier = ">=2.9.0" },
     { name = "tensorboard", specifier = ">=2.20.0" },
 ]
