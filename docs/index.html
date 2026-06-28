@@ -685,6 +685,15 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Add robust-sim evaluation</h3>
+              <p>
+                Added wrappers for noise, delay, dynamics randomization, and external
+                pushes, plus a report command for testing clean-trained policies.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -711,8 +720,8 @@
             </tr>
             <tr>
               <td>Robust simulation</td>
-              <td>Add friction, mass, damping, force limits, sensor noise, delay, and pushes.</td>
-              <td>Prepares the controller for variation instead of one clean simulator.</td>
+              <td>Run the new robust evaluator, then train policies with selected stressors enabled.</td>
+              <td>Shows which clean-trained controllers survive variation and which need robust training.</td>
             </tr>
             <tr>
               <td>Visual RL</td>
@@ -741,33 +750,38 @@
       <section>
         <h2>Robust Sim Before Hardware</h2>
         <p>
-          The next practical improvement should be a richer simulator, not physical
-          deployment. The real cart-pole will have noise, latency, imperfect calibration,
-          friction, endstop constraints, and disturbances. The simulator should start
-          representing those issues before any policy touches hardware.
+          The project now has a first robustness layer for pressure-testing trained
+          policies before retraining or touching physical hardware. The real cart-pole
+          will have noise, latency, imperfect calibration, friction, endstop constraints,
+          and disturbances, so the simulator needs to expose those failure modes early.
         </p>
         <div class="grid three stack-gap">
           <div class="card">
             <h3>Action and sensor noise</h3>
             <p>
-              Add action noise, encoder noise, velocity-estimation noise, and small
-              observation delays.
+              The <code>sensor_noise</code> and <code>delay</code> scenarios add
+              encoder-like noise, action noise, and delayed actions/observations.
             </p>
           </div>
           <div class="card">
             <h3>Physical variation</h3>
             <p>
-              Randomize cart mass, pole mass, pole length, joint damping, rail friction,
-              actuator gain, and saturation.
+              The <code>dynamics</code> scenario randomizes cart mass, pole mass, joint
+              damping, friction loss, gravity, and force limit.
             </p>
           </div>
           <div class="card">
             <h3>Disturbances</h3>
             <p>
-              Add external pushes, imperfect resets, failed swing-ups, recovery episodes,
-              and noisy policy rollouts.
+              The <code>pushes</code> and <code>combined</code> scenarios inject cart and
+              pole velocity impulses during the rollout.
             </p>
           </div>
+        </div>
+        <div class="note">
+          The first robustness result is intentionally evaluation-only. The next learning
+          step is to train with selected stressors and compare clean-trained versus
+          robust-trained policies.
         </div>
       </section>
 
@@ -836,7 +850,7 @@
               done first pass
             </text>
             <text x="445" y="130" text-anchor="middle" font-size="13">
-              next
+              current
             </text>
             <text x="620" y="130" text-anchor="middle" font-size="13">
               camera policies
@@ -903,6 +917,12 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
   artifacts/runs/td3/&lt;run-id&gt;/eval_metrics.json \
   artifacts/runs/sac/&lt;run-id&gt;/eval_metrics.json \
   artifacts/runs/ppo/&lt;run-id&gt;/eval_metrics.json</code></pre>
+          </div>
+          <div class="card">
+            <h3>Run robustness report</h3>
+            <pre><code>uv run cartpole-robot-robust-eval \
+  --algo ppo \
+  --model models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
           </div>
           <div class="card">
             <h3>Watch a trained policy</h3>

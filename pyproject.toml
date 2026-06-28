@@ -20,6 +20,7 @@ cartpole-robot = "cartpole_robot.rollout:main"
 cartpole-robot-check = "cartpole_robot.check_env:main"
 cartpole-robot-compare = "cartpole_robot.compare_results:main"
 cartpole-robot-eval = "cartpole_robot.evaluate_policy:main"
+cartpole-robot-robust-eval = "cartpole_robot.evaluate_robustness:main"
 cartpole-robot-train = "cartpole_robot.train_policy:main"
 cartpole-robot-watch = "cartpole_robot.watch:main"
 
