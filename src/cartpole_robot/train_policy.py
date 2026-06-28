@@ -17,6 +17,7 @@ from stable_baselines3.common.noise import NormalActionNoise
 
 from cartpole_robot.algorithms import ALGORITHM_CLASSES, normalize_algorithm
 from cartpole_robot.registration import ENV_ID, make_env, register_env
+from cartpole_robot.robustness import make_robust_env, scenario_names
 
 
 COMMON_DEFAULTS: dict[str, Any] = {
@@ -30,6 +31,7 @@ COMMON_DEFAULTS: dict[str, Any] = {
     "checkpoint_every": 50_000,
     "device": "auto",
     "n_envs": 1,
+    "robust_scenario": "clean",
 }
 
 
@@ -84,6 +86,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--device", default=None)
     parser.add_argument("--n-envs", type=int, default=None)
+    parser.add_argument(
+        "--robust-scenario",
+        choices=scenario_names(),
+        default=None,
+        help="Optional robust-simulation scenario for training and eval.",
+    )
     parser.add_argument(
         "--artifact-root",
         type=Path,
@@ -156,6 +164,7 @@ def resolved_config(args: argparse.Namespace) -> dict[str, Any]:
         "checkpoint_every",
         "device",
         "n_envs",
+        "robust_scenario",
         "buffer_size",
         "learning_starts",
         "tau",
@@ -214,15 +223,48 @@ def make_training_env(config: dict[str, Any]):
     if n_envs <= 0:
         raise ValueError("n_envs must be positive.")
 
+    robust_scenario = str(config.get("robust_scenario", "clean"))
     if n_envs == 1:
+        if robust_scenario == "clean":
+            env = make_env(max_episode_steps=int(config["max_steps"]))
+        else:
+            env = make_robust_env(
+                robust_scenario,
+                max_episode_steps=int(config["max_steps"]),
+                seed=int(config["seed"]),
+            )
+        return Monitor(env)
+
+    if robust_scenario == "clean":
+        register_env()
+        return make_vec_env(
+            ENV_ID,
+            n_envs=n_envs,
+            seed=int(config["seed"]),
+            env_kwargs={"max_episode_steps": int(config["max_steps"])},
+        )
+
+    def make_single_env():
+        return make_robust_env(
+            robust_scenario,
+            max_episode_steps=int(config["max_steps"]),
+            seed=int(config["seed"]),
+        )
+
+    return make_vec_env(make_single_env, n_envs=n_envs, seed=int(config["seed"]))
+
+
+def make_eval_env(config: dict[str, Any]) -> Monitor:
+    robust_scenario = str(config.get("robust_scenario", "clean"))
+    if robust_scenario == "clean":
         return Monitor(make_env(max_episode_steps=int(config["max_steps"])))
 
-    register_env()
-    return make_vec_env(
-        ENV_ID,
-        n_envs=n_envs,
-        seed=int(config["seed"]),
-        env_kwargs={"max_episode_steps": int(config["max_steps"])},
+    return Monitor(
+        make_robust_env(
+            robust_scenario,
+            max_episode_steps=int(config["max_steps"]),
+            seed=int(config["seed"]) + 1_000_000,
+        )
     )
 
 
@@ -321,7 +363,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     save_json(run_dir / "config.json", config)
 
     env = make_training_env(config)
-    eval_env = Monitor(make_env(max_episode_steps=int(config["max_steps"])))
+    eval_env = make_eval_env(config)
     n_envs = int(config["n_envs"])
 
     callbacks = []

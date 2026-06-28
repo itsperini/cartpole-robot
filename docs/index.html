@@ -694,6 +694,16 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Fine-tune PPO for push recovery</h3>
+              <p>
+                Resumed the solved PPO checkpoint inside the <code>pushes</code>
+                scenario. The kept model reaches 95% success on pushed rollouts while
+                preserving clean swing-up.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -779,9 +789,30 @@
           </div>
         </div>
         <div class="note">
-          The first robustness result is intentionally evaluation-only. The next learning
-          step is to train with selected stressors and compare clean-trained versus
-          robust-trained policies.
+          The trainer can now run inside a robustness scenario. The first focused
+          experiment is PPO fine-tuning with <code>pushes</code>, so the policy practices
+          recovering from cart and pole velocity impulses before any hardware work.
+        </div>
+        <div class="grid two stack-gap">
+          <figure>
+            <img
+              src="assets/ppo_robust_pushes_robustness.png"
+              alt="Robustness chart for the PPO push-recovery policy"
+            />
+            <figcaption>
+              PPO push-recovery checkpoint evaluated across clean, noisy, delayed,
+              randomized, pushed, and combined scenarios.
+            </figcaption>
+          </figure>
+          <div class="card">
+            <h3>What this run taught</h3>
+            <p>
+              Training directly on pushes improved the disturbance case from the
+              clean PPO's 75% success to 95% success over 20 evaluation episodes.
+              Clean swing-up stayed solved, but delay, randomized dynamics, and combined
+              stressors are still separate problems rather than solved sim2real transfer.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -925,10 +956,16 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
   --model models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
           </div>
           <div class="card">
+            <h3>Train push recovery</h3>
+            <pre><code>uv run cartpole-robot-train \
+  --config configs/algorithms/ppo_robust_pushes.toml \
+  --resume models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
+          </div>
+          <div class="card">
             <h3>Watch a trained policy</h3>
             <pre><code>uv run cartpole-robot-watch \
   --algo ppo \
-  --model models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
+  --model models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip</code></pre>
           </div>
           <div class="card">
             <h3>Run a random rollout</h3>

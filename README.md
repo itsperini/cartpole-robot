@@ -79,6 +79,14 @@ uv run cartpole-robot-train --algo ppo --n-steps 1024
 uv run cartpole-robot-train --config configs/algorithms/td3.toml --action-noise 0.2
 ```
 
+Fine-tune PPO against repeated simulated pushes:
+
+```bash
+uv run cartpole-robot-train \
+  --config configs/algorithms/ppo_robust_pushes.toml \
+  --resume models/best/ppo_cartpole_swingup_best_20260629-010531.zip
+```
+
 New runs are timestamped so older experiments are not overwritten:
 
 ```text
@@ -153,9 +161,22 @@ robustness.md
 robustness.png
 ```
 
-This is evaluation-only for now. The next training step is to train policies with
-some of these stressors enabled and compare clean-trained versus robust-trained
-controllers.
+The trainer can also run inside a robustness scenario. The first useful target is
+`configs/algorithms/ppo_robust_pushes.toml`, which fine-tunes PPO under repeated
+push impulses so the policy practices recovery before hardware work.
+
+Current PPO push-recovery result, evaluated over 20 episodes:
+
+```text
+scenario   success  reward   upright  stable  termination  mean |force|
+clean      100%     1419.59   93.2%    93.2%       0%          0.685
+pushes      95%     1340.67   91.3%    89.1%       5%          1.602
+combined    20%      285.14   19.8%     7.5%      75%          8.203
+```
+
+This is good enough to keep as a push-recovery checkpoint, but not a general
+sim2real solution yet. Delay and combined stressors still need their own training
+chapter.
 
 ## Included Models
 
@@ -164,6 +185,7 @@ This repo includes trained policies:
 ```bash
 models/best/td3_cartpole_swingup_best_20260628-012620.zip
 models/best/ppo_cartpole_swingup_best_20260629-010531.zip
+models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip
 ```
 
 Watch the default TD3 policy:
@@ -178,6 +200,14 @@ Watch the PPO policy:
 uv run cartpole-robot-watch \
   --algo ppo \
   --model models/best/ppo_cartpole_swingup_best_20260629-010531.zip
+```
+
+Watch the PPO push-recovery policy in the clean viewer:
+
+```bash
+uv run cartpole-robot-watch \
+  --algo ppo \
+  --model models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip
 ```
 
 Watch another checkpoint:
