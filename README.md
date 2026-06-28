@@ -130,6 +130,23 @@ uv run cartpole-robot-world-eval \
   --model world_models/cartpole_swingup_ensemble.pt
 ```
 
+Create richer plots:
+
+```bash
+uv run cartpole-robot-world-viz \
+  --dataset datasets/swingup_random.npz \
+  --model world_models/cartpole_swingup_ensemble.pt
+```
+
+This writes PNGs to `reports/world_model/` and logs figures to `runs/world_model_viz/`.
+
+The visualization command creates:
+
+- trajectory overlays: true state/reward vs predicted state/reward
+- uncertainty bands: ensemble standard deviation around predictions
+- pole phase plots: pole angle vs angular velocity
+- horizon-error plots: recursive prediction error as the rollout gets longer
+
 World-model TensorBoard logs go into `runs/world_model/` and `runs/world_model_eval/`.
 
 ## Included Model
@@ -163,6 +180,7 @@ uv run cartpole-robot-watch          # render the trained best model
 uv run cartpole-robot-collect        # collect transition data
 uv run cartpole-robot-world-train    # train the MLP ensemble world model
 uv run cartpole-robot-world-eval     # evaluate the world model
+uv run cartpole-robot-world-viz      # save and log world-model plots
 ```
 
 ## Project Layout
@@ -178,6 +196,7 @@ src/cartpole_robot/
   world_model.py                  MLP ensemble, normalization, checkpoint helpers
   train_world_model.py            world-model training entry point
   eval_world_model.py             one-step and rollout evaluation metrics
+  visualize_world_model.py        trajectory, uncertainty, and error plots
   rollout.py                      random-policy rollout helper
   check_env.py                    Stable-Baselines3 env checker
   __main__.py                     enables python -m cartpole_robot

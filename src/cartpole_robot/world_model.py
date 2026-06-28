@@ -224,3 +224,60 @@ class WorldModelEnsemble:
         reward_mean = reward_members.mean(axis=0)
         disagreement = next_obs_members.std(axis=0).mean(axis=1)
         return next_obs_mean, reward_mean, disagreement.astype(np.float32)
+
+    @torch.no_grad()
+    def rollout_members(
+        self,
+        initial_obs: np.ndarray,
+        actions: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        action_array = np.asarray(actions, dtype=np.float32)
+        initial_obs_array = np.asarray(initial_obs, dtype=np.float32).reshape(1, -1)
+        member_count = len(self.models)
+
+        member_obs = torch.as_tensor(
+            np.repeat(initial_obs_array, member_count, axis=0),
+            dtype=torch.float32,
+            device=self.device,
+        )
+        member_states = [member_obs.cpu().numpy()]
+        member_rewards = []
+
+        for action in action_array:
+            action_tensor = torch.as_tensor(
+                np.repeat(action.reshape(1, -1), member_count, axis=0),
+                dtype=torch.float32,
+                device=self.device,
+            )
+            outputs = []
+
+            for model_index, model in enumerate(self.models):
+                model_input = torch.cat(
+                    [
+                        member_obs[model_index : model_index + 1],
+                        action_tensor[model_index : model_index + 1],
+                    ],
+                    dim=1,
+                )
+                normalized_input = (model_input - self.input_mean) / self.input_std
+                normalized_target = model(normalized_input)
+                outputs.append(
+                    unstandardize(
+                        normalized_target,
+                        self.target_mean,
+                        self.target_std,
+                    )
+                )
+
+            targets = torch.cat(outputs, dim=0)
+            delta_obs = targets[:, : self.obs_dim]
+            rewards = targets[:, self.obs_dim]
+            member_obs = member_obs + delta_obs
+
+            member_states.append(member_obs.cpu().numpy())
+            member_rewards.append(rewards.cpu().numpy())
+
+        return (
+            np.stack(member_states, axis=0).astype(np.float32),
+            np.stack(member_rewards, axis=0).astype(np.float32),
+        )
