@@ -11,11 +11,12 @@ from typing import Any
 
 import numpy as np
 from stable_baselines3.common.callbacks import CallbackList, CheckpointCallback, EvalCallback
+from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
 
 from cartpole_robot.algorithms import ALGORITHM_CLASSES, normalize_algorithm
-from cartpole_robot.registration import ENV_ID, make_env
+from cartpole_robot.registration import ENV_ID, make_env, register_env
 
 
 COMMON_DEFAULTS: dict[str, Any] = {
@@ -28,6 +29,7 @@ COMMON_DEFAULTS: dict[str, Any] = {
     "eval_every": 10_000,
     "checkpoint_every": 50_000,
     "device": "auto",
+    "n_envs": 1,
 }
 
 
@@ -49,6 +51,9 @@ ALGORITHM_DEFAULTS: dict[str, dict[str, Any]] = {
         "n_epochs": 10,
         "gae_lambda": 0.95,
         "clip_range": 0.2,
+        "ent_coef": 0.0,
+        "vf_coef": 0.5,
+        "max_grad_norm": 0.5,
     },
 }
 
@@ -78,6 +83,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--eval-every", type=int, default=None)
     parser.add_argument("--checkpoint-every", type=int, default=None)
     parser.add_argument("--device", default=None)
+    parser.add_argument("--n-envs", type=int, default=None)
     parser.add_argument(
         "--artifact-root",
         type=Path,
@@ -110,6 +116,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--n-epochs", type=int, default=None)
     parser.add_argument("--gae-lambda", type=float, default=None)
     parser.add_argument("--clip-range", type=float, default=None)
+    parser.add_argument("--vf-coef", type=float, default=None)
+    parser.add_argument("--max-grad-norm", type=float, default=None)
+    parser.add_argument("--target-kl", type=float, default=None)
     return parser.parse_args(argv)
 
 
@@ -146,6 +155,7 @@ def resolved_config(args: argparse.Namespace) -> dict[str, Any]:
         "eval_every",
         "checkpoint_every",
         "device",
+        "n_envs",
         "buffer_size",
         "learning_starts",
         "tau",
@@ -155,6 +165,9 @@ def resolved_config(args: argparse.Namespace) -> dict[str, Any]:
         "n_epochs",
         "gae_lambda",
         "clip_range",
+        "vf_coef",
+        "max_grad_norm",
+        "target_kl",
     ):
         value = getattr(args, key, None)
         if value is not None:
@@ -196,10 +209,27 @@ def make_action_noise(config: dict[str, Any], action_dim: int) -> NormalActionNo
     )
 
 
+def make_training_env(config: dict[str, Any]):
+    n_envs = int(config["n_envs"])
+    if n_envs <= 0:
+        raise ValueError("n_envs must be positive.")
+
+    if n_envs == 1:
+        return Monitor(make_env(max_episode_steps=int(config["max_steps"])))
+
+    register_env()
+    return make_vec_env(
+        ENV_ID,
+        n_envs=n_envs,
+        seed=int(config["seed"]),
+        env_kwargs={"max_episode_steps": int(config["max_steps"])},
+    )
+
+
 def make_model_kwargs(
     algorithm: str,
     config: dict[str, Any],
-    env: Monitor,
+    env,
     tensorboard_dir: Path,
 ) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
@@ -245,8 +275,13 @@ def make_model_kwargs(
                 "n_epochs": int(config["n_epochs"]),
                 "gae_lambda": float(config["gae_lambda"]),
                 "clip_range": float(config["clip_range"]),
+                "ent_coef": float(config["ent_coef"]),
+                "vf_coef": float(config["vf_coef"]),
+                "max_grad_norm": float(config["max_grad_norm"]),
             }
         )
+        if "target_kl" in config:
+            kwargs["target_kl"] = float(config["target_kl"])
 
     return kwargs
 
@@ -254,7 +289,7 @@ def make_model_kwargs(
 def load_resume_kwargs(
     algorithm: str,
     config: dict[str, Any],
-    env: Monitor,
+    env,
     tensorboard_dir: Path,
 ) -> dict[str, Any]:
     kwargs: dict[str, Any] = {
@@ -285,8 +320,9 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     save_json(run_dir / "config.json", config)
 
-    env = Monitor(make_env(max_episode_steps=int(config["max_steps"])))
+    env = make_training_env(config)
     eval_env = Monitor(make_env(max_episode_steps=int(config["max_steps"])))
+    n_envs = int(config["n_envs"])
 
     callbacks = []
     if int(config["eval_every"]) > 0:
@@ -295,7 +331,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                 eval_env,
                 best_model_save_path=str(run_dir / "best"),
                 log_path=str(eval_dir),
-                eval_freq=int(config["eval_every"]),
+                eval_freq=max(int(config["eval_every"]) // n_envs, 1),
                 deterministic=True,
                 render=False,
             )
@@ -304,7 +340,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     if int(config["checkpoint_every"]) > 0:
         callbacks.append(
             CheckpointCallback(
-                save_freq=int(config["checkpoint_every"]),
+                save_freq=max(int(config["checkpoint_every"]) // n_envs, 1),
                 save_path=str(checkpoint_dir),
                 name_prefix=f"{algorithm}_cartpole_swingup",
             )

@@ -188,6 +188,33 @@
         background: #ffffff;
       }
 
+      .grid .video-frame {
+        margin-top: 0;
+      }
+
+      .video-frame video {
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+      }
+
+      .chart {
+        margin-top: 16px;
+      }
+
+      .results-table td:not(:first-child),
+      .results-table th:not(:first-child) {
+        text-align: right;
+      }
+
+      .table-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      .small-text {
+        font-size: 0.92rem;
+      }
+
       .diagram {
         width: 100%;
         overflow-x: auto;
@@ -293,9 +320,8 @@
           This project is a focused learning track for robotics reinforcement learning
           using one controllable system: a MuJoCo cart-pole with normalized continuous
           force control. The current chapter is model-free state-based RL: a trained TD3
-          baseline is included, and SAC/PPO comparison scaffolding is ready. Next chapters
-          should make the simulator robust, add camera observations, and prepare for real
-          hardware.
+          baseline is now compared against SAC and PPO. Next chapters should make the
+          simulator robust, add camera observations, and prepare for real hardware.
         </p>
       </section>
 
@@ -312,7 +338,7 @@
           </div>
           <div class="card metric">
             <strong>3</strong>
-            <span>Supported baselines: TD3, SAC, and PPO</span>
+            <span>Trained baselines: TD3, SAC, and PPO</span>
           </div>
         </div>
         <p class="stack-gap">
@@ -332,16 +358,164 @@
             <figcaption>Trained TD3 policy frame after swing-up and stabilization.</figcaption>
           </figure>
         </div>
-        <figure class="video-frame">
-          <video controls preload="metadata" poster="assets/td3_swingup_poster.png">
-            <source src="assets/td3_swingup.mp4" type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+      </section>
+
+      <section>
+        <h2>Learned Policy Rollouts</h2>
+        <p>
+          These videos use the best checkpoint from each trained run, rendered from
+          MuJoCo RGB frames with a deterministic policy and a 500-step episode horizon.
+        </p>
+        <div class="grid three stack-gap">
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_learned_policy_poster.png">
+              <source src="assets/td3_learned_policy.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              TD3 swings up aggressively and keeps the pole upright for most of the episode.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/sac_learned_policy_poster.png">
+              <source src="assets/sac_learned_policy.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              SAC reaches nearly the same stability with much lower average force effort.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/ppo_learned_policy_poster.png">
+              <source src="assets/ppo_learned_policy.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              PPO now also swings up and stabilizes after continuing the original run.
+            </figcaption>
+          </figure>
+        </div>
+        <div class="grid three stack-gap">
+          <div class="card">
+            <h3>TD3</h3>
+            <p class="small-text">
+              Best mean reward in this batch: <strong>1417</strong>, with about
+              <strong>93%</strong> upright time.
+            </p>
+          </div>
+          <div class="card">
+            <h3>SAC</h3>
+            <p class="small-text">
+              Very close mean reward: <strong>1411</strong>, with about
+              <strong>92%</strong> upright time and low action effort.
+            </p>
+          </div>
+          <div class="card">
+            <h3>PPO</h3>
+            <p class="small-text">
+              After a longer continuation, PPO reaches <strong>1420</strong> mean reward
+              with about <strong>93%</strong> upright time.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Algorithm Comparison Results</h2>
+        <p>
+          All three policies use the same custom environment, normalized continuous
+          action, evaluation horizon, and metrics. The useful lesson is not just who
+          wins; it is the tradeoff between return, stability, cart travel, and force use.
+        </p>
+        <div class="note">
+          The policy action is always normalized to <code>[-1, 1]</code>. The simulator
+          maps that to physical cart effort with <code>force = action * 10</code>, so
+          <code>mean |force|</code> is the average push magnitude applied to the cart.
+        </div>
+        <div class="grid two stack-gap">
+          <figure>
+            <img
+              src="assets/algorithm_metrics_comparison.png"
+              alt="Bar charts comparing reward, upright time, and stable time for TD3, SAC, and PPO"
+            />
+            <figcaption>Reward and stability comparison from the saved evaluation reports.</figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/algorithm_effort_tradeoff.png"
+              alt="Charts comparing upright performance, force effort, and cart movement"
+            />
+            <figcaption>All three solve swing-up; SAC and PPO do it with much lower average force than TD3.</figcaption>
+          </figure>
+        </div>
+        <figure class="chart">
+          <img
+            src="assets/algorithm_eval_curves.png"
+            alt="Evaluation reward curves during training for TD3, SAC, and PPO"
+          />
           <figcaption>
-            TD3 policy rollout recorded from MuJoCo RGB frames. The controller swings the
-            pole up and stabilizes it near upright.
+            Evaluation reward over training. TD3 and SAC reached strong policies quickly;
+            PPO needed a longer continuation before matching their swing-up performance.
           </figcaption>
         </figure>
+        <figure class="chart">
+          <img
+            src="assets/algorithm_comparison_loop.png"
+            alt="Diagram of the current model-free reinforcement learning comparison loop"
+          />
+          <figcaption>
+            The current loop: one simulator, shared configs, three algorithms, one evaluator,
+            then videos and charts in the docs.
+          </figcaption>
+        </figure>
+        <div class="table-scroll stack-gap">
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>Policy</th>
+                <th>Mean reward</th>
+                <th>Success</th>
+                <th>Upright</th>
+                <th>Stable</th>
+                <th>Mean |action|</th>
+                <th>Mean |force|</th>
+                <th>Mean |cart x|</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>TD3</td>
+                <td>1417.21</td>
+                <td>100%</td>
+                <td>93.1%</td>
+                <td>92.9%</td>
+                <td>0.818</td>
+                <td>8.178</td>
+                <td>0.170</td>
+              </tr>
+              <tr>
+                <td>SAC</td>
+                <td>1411.16</td>
+                <td>100%</td>
+                <td>92.3%</td>
+                <td>92.3%</td>
+                <td>0.058</td>
+                <td>0.576</td>
+                <td>0.590</td>
+              </tr>
+              <tr>
+                <td>PPO</td>
+                <td>1420.08</td>
+                <td>100%</td>
+                <td>93.4%</td>
+                <td>93.3%</td>
+                <td>0.070</td>
+                <td>0.698</td>
+                <td>0.156</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section>
@@ -410,7 +584,7 @@
       </section>
 
       <section>
-        <h2>What TD3 Learns</h2>
+        <h2>What Model-Free Control Learns</h2>
         <div class="grid two">
           <div class="card">
             <h3>Actor</h3>
@@ -424,8 +598,8 @@
           <div class="card">
             <h3>Critics</h3>
             <p>
-              TD3 trains two value estimators for the same state-action pair. Using two
-              critics helps reduce overly optimistic value estimates during learning.
+              TD3 trains two value estimators for the same state-action pair. SAC also
+              uses critic networks, while PPO learns from batches of on-policy rollouts.
             </p>
             <pre><code>critic(obs_t, action_t) -> value estimate</code></pre>
           </div>
@@ -468,7 +642,7 @@
           </div>
           <div class="step">
             <div>
-              <h3>Record the learned behavior</h3>
+              <h3>Record the first learned behavior</h3>
               <p>
                 Added a short MuJoCo video of the trained policy so progress is visible
                 without opening a simulator window.
@@ -481,6 +655,33 @@
               <p>
                 Added TD3, SAC, and PPO configs, timestamped artifact folders, and one
                 evaluator for reward, stability, cart travel, and action effort.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <h3>Train SAC and PPO</h3>
+              <p>
+                Ran the comparison baselines and evaluated all three policies under the
+                same 500-step swing-up task.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <h3>Continue PPO to solve swing-up</h3>
+              <p>
+                Resumed the first PPO policy for longer training. The best checkpoint now
+                matches the TD3/SAC swing-up behavior with low average force.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <h3>Document the comparison</h3>
+              <p>
+                Added rollout videos, reward charts, stability charts, and a comparison
+                loop diagram to the project docs.
               </p>
             </div>
           </div>
@@ -500,8 +701,8 @@
           <tbody>
             <tr>
               <td>Algorithm comparison</td>
-              <td>Run TD3, SAC, and PPO with the same environment, config style, and evaluation script.</td>
-              <td>Shows the difference between off-policy and on-policy control in one system. The scaffolding is now in place.</td>
+              <td>Repeat TD3, SAC, and PPO across multiple seeds, then stress-test the best checkpoints.</td>
+              <td>Turns the comparison into evidence instead of one lucky or unlucky run.</td>
             </tr>
             <tr>
               <td>Reward shaping</td>
@@ -629,13 +830,13 @@
             <path d="M652 210 H763" stroke="#526071" stroke-width="2" marker-end="url(#roadArrow)"></path>
             <path d="M827 210 H938" stroke="#526071" stroke-width="2" marker-end="url(#roadArrow)"></path>
             <text x="95" y="130" text-anchor="middle" font-size="13">
-              current
+              done
             </text>
             <text x="270" y="130" text-anchor="middle" font-size="13">
-              algorithm basics
+              done first pass
             </text>
             <text x="445" y="130" text-anchor="middle" font-size="13">
-              randomization
+              next
             </text>
             <text x="620" y="130" text-anchor="middle" font-size="13">
               camera policies
@@ -704,8 +905,10 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
   artifacts/runs/ppo/&lt;run-id&gt;/eval_metrics.json</code></pre>
           </div>
           <div class="card">
-            <h3>Watch the included policy</h3>
-            <pre><code>uv run cartpole-robot-watch</code></pre>
+            <h3>Watch a trained policy</h3>
+            <pre><code>uv run cartpole-robot-watch \
+  --algo ppo \
+  --model models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></pre>
           </div>
           <div class="card">
             <h3>Run a random rollout</h3>
