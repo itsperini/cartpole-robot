@@ -5,14 +5,13 @@ import time
 from collections.abc import Sequence
 from pathlib import Path
 
-from stable_baselines3 import TD3
-
+from cartpole_robot.algorithms import load_policy
 from cartpole_robot.registration import ENV_ID, make_env
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Watch a trained TD3 policy in the MuJoCo cart-pole swing-up environment."
+        description="Watch a trained TD3, SAC, or PPO policy in the MuJoCo cart-pole swing-up environment."
     )
     parser.add_argument(
         "--model",
@@ -20,6 +19,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=Path(
             "models/best/td3_cartpole_swingup_best_20260628-012620.zip"
         ),
+    )
+    parser.add_argument(
+        "--algo",
+        default="auto",
+        choices=["auto", "td3", "sac", "ppo"],
+        help="Algorithm that created the model. Auto infers from the path when possible.",
     )
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--max-steps", type=int, default=500)
@@ -37,9 +42,15 @@ def main(argv: Sequence[str] | None = None) -> None:
 
     render_delay = 1 / args.render_fps if args.render_fps > 0 else 0.0
     env = make_env(render_mode="human", max_episode_steps=args.max_steps)
-    model = TD3.load(args.model, env=env, device=args.device)
+    algorithm, model = load_policy(
+        args.model,
+        algorithm=args.algo,
+        env=env,
+        device=args.device,
+    )
 
-    print(f"\nWatching {args.model} on {ENV_ID}")
+    print(f"\nWatching {algorithm.upper()} policy on {ENV_ID}")
+    print(f"Model: {args.model}")
 
     try:
         for episode in range(1, args.episodes + 1):

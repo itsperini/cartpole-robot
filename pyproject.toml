@@ -1,7 +1,7 @@
 [project]
 name = "cartpole-robot"
 version = "0.1.0"
-description = "A MuJoCo cart-pole swing-up environment with TD3 training scripts."
+description = "A MuJoCo cart-pole swing-up environment for robotics RL algorithm comparisons."
 readme = "README.md"
 authors = [
     { name = "itsperini", email = "perinim.98@gmail.com" }
@@ -18,7 +18,9 @@ dependencies = [
 [project.scripts]
 cartpole-robot = "cartpole_robot.rollout:main"
 cartpole-robot-check = "cartpole_robot.check_env:main"
-cartpole-robot-train = "cartpole_robot.train_td3:main"
+cartpole-robot-compare = "cartpole_robot.compare_results:main"
+cartpole-robot-eval = "cartpole_robot.evaluate_policy:main"
+cartpole-robot-train = "cartpole_robot.train_policy:main"
 cartpole-robot-watch = "cartpole_robot.watch:main"
 
 [build-system]

@@ -1,6 +1,6 @@
 # cartpole-robot
 
-MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized continuous actions, and TD3 training scripts.
+MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized continuous actions, and model-free RL baselines.
 
 This is not the standard `CartPole-v1` task. The goal is to start with the pole hanging downward, apply horizontal force to the cart, swing the pole upright, and stabilize it there.
 
@@ -60,36 +60,69 @@ Check that the custom environment is compatible with Stable-Baselines3:
 uv run cartpole-robot-check
 ```
 
-## Training
+## Training Baselines
 
-Start a TD3 run:
+Train TD3, SAC, or PPO from config files:
 
 ```bash
-uv run cartpole-robot-train --timesteps 300000
+uv run cartpole-robot-train --config configs/algorithms/td3.toml
+uv run cartpole-robot-train --config configs/algorithms/sac.toml
+uv run cartpole-robot-train --config configs/algorithms/ppo.toml
 ```
 
 Useful options:
 
 ```bash
-uv run cartpole-robot-train --timesteps 1000000
-uv run cartpole-robot-train --action-noise 0.2
-uv run cartpole-robot-train --resume models/checkpoints/td3_cartpole_swingup_150000_steps.zip
+uv run cartpole-robot-train --algo td3 --timesteps 1000000
+uv run cartpole-robot-train --algo sac --learning-rate 0.0003
+uv run cartpole-robot-train --algo ppo --n-steps 1024
+uv run cartpole-robot-train --config configs/algorithms/td3.toml --action-noise 0.2
 ```
 
-Training writes:
+New runs are timestamped so older experiments are not overwritten:
 
-- checkpoints to `models/checkpoints/`
-- best evaluated model to `models/best/`
-- final model to `models/td3_cartpole_swingup.zip`
-- TensorBoard logs to `runs/`
+```text
+artifacts/runs/<algorithm>/<timestamp>/
+  best/best_model.zip
+  checkpoints/
+  config.json
+  final_model.zip
+  metadata.json
+  tensorboard/
+```
 
 Open TensorBoard while training:
 
 ```bash
-uv run tensorboard --logdir runs
+uv run tensorboard --logdir artifacts/runs
 ```
 
 Then open `http://localhost:6006`.
+
+## Evaluation
+
+Evaluate any saved TD3, SAC, or PPO policy:
+
+```bash
+uv run cartpole-robot-eval \
+  --algo td3 \
+  --model artifacts/runs/td3/<run-id>/best/best_model.zip \
+  --output artifacts/runs/td3/<run-id>/eval_metrics.json
+```
+
+The evaluator reports reward, episode length, success rate, upright time,
+stable time, cart travel, action effort, and force effort.
+
+Compare evaluation reports:
+
+```bash
+uv run cartpole-robot-compare \
+  artifacts/runs/td3/<run-id>/eval_metrics.json \
+  artifacts/runs/sac/<run-id>/eval_metrics.json \
+  artifacts/runs/ppo/<run-id>/eval_metrics.json
+```
+
+This writes a markdown table and plot under `artifacts/comparisons/`.
 
 ## Included Model
 
@@ -111,14 +144,23 @@ Watch another checkpoint:
 uv run cartpole-robot-watch --model models/checkpoints/td3_cartpole_swingup_150000_steps.zip
 ```
 
+Watch a new SAC or PPO run:
+
+```bash
+uv run cartpole-robot-watch --algo sac --model artifacts/runs/sac/<run-id>/best/best_model.zip
+uv run cartpole-robot-watch --algo ppo --model artifacts/runs/ppo/<run-id>/best/best_model.zip
+```
+
 ## Commands
 
 ```bash
 uv run cartpole-robot-check          # validate the Gymnasium environment
 uv run cartpole-robot                # random rollout, headless by default
 uv run cartpole-robot --render       # random rollout with MuJoCo viewer
-uv run cartpole-robot-train          # train TD3
-uv run cartpole-robot-watch          # render the trained best model
+uv run cartpole-robot-train          # train TD3 by default, or choose --algo sac/ppo
+uv run cartpole-robot-eval           # evaluate TD3/SAC/PPO with robotics metrics
+uv run cartpole-robot-compare        # compare saved evaluation JSON reports
+uv run cartpole-robot-watch          # render a trained TD3/SAC/PPO model
 ```
 
 ## Project Layout
@@ -128,8 +170,12 @@ src/cartpole_robot/
   swingup_env.py                  custom Gymnasium/MuJoCo environment
   assets/cartpole_swingup.xml     MuJoCo cart, rail, pole, hinge, and motor model
   registration.py                 registers CartPoleSwingUp-v0
-  train_td3.py                    TD3 training entry point
-  watch.py                        loads and renders a trained TD3 policy
+  algorithms.py                   shared TD3/SAC/PPO loading helpers
+  train_policy.py                 TD3/SAC/PPO training entry point
+  train_td3.py                    compatibility wrapper for the policy trainer
+  evaluate_policy.py              reward, stability, and effort metrics
+  compare_results.py              markdown and plot summaries from eval reports
+  watch.py                        loads and renders a trained TD3/SAC/PPO policy
   rollout.py                      random-policy rollout helper
   check_env.py                    Stable-Baselines3 env checker
   __main__.py                     enables python -m cartpole_robot

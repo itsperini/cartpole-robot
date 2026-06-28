@@ -282,8 +282,9 @@
         <div class="tags">
           <span class="tag">MuJoCo</span>
           <span class="tag">Gymnasium custom Env</span>
-          <span class="tag">Stable-Baselines3 TD3</span>
+          <span class="tag">Stable-Baselines3 TD3 / SAC / PPO</span>
           <span class="tag">Continuous control</span>
+          <span class="tag">Algorithm comparison</span>
           <span class="tag">Visual RL next</span>
           <span class="tag">Sim2real later</span>
         </div>
@@ -291,9 +292,10 @@
         <p>
           This project is a focused learning track for robotics reinforcement learning
           using one controllable system: a MuJoCo cart-pole with normalized continuous
-          force control. The current chapter is model-free state-based RL with TD3. Next
-          chapters should compare core algorithms, make the simulator robust, add camera
-          observations, and prepare for real hardware.
+          force control. The current chapter is model-free state-based RL: a trained TD3
+          baseline is included, and SAC/PPO comparison scaffolding is ready. Next chapters
+          should make the simulator robust, add camera observations, and prepare for real
+          hardware.
         </p>
       </section>
 
@@ -309,8 +311,8 @@
             <span>Normalized action mapped to physical cart force</span>
           </div>
           <div class="card metric">
-            <strong>TD3</strong>
-            <span>Trained swing-up policy included in the repo</span>
+            <strong>3</strong>
+            <span>Supported baselines: TD3, SAC, and PPO</span>
           </div>
         </div>
         <p class="stack-gap">
@@ -345,9 +347,9 @@
       <section>
         <h2>System Architecture</h2>
         <p>
-          The active repo is now intentionally small: one custom simulator, one model-free
-          baseline, rendering tools, and saved policy artifacts. This keeps the foundation
-          clear before adding more algorithms.
+          The active repo is intentionally small: one custom simulator, model-free
+          baseline trainers, shared evaluation metrics, rendering tools, and timestamped
+          artifacts. This keeps algorithm comparisons fair and repeatable.
         </p>
         <div class="diagram" aria-label="Project architecture diagram">
           <svg width="1060" height="310" viewBox="0 0 1060 310" role="img">
@@ -372,8 +374,8 @@
             <text x="385" y="128" text-anchor="middle" font-size="13">CartPoleSwingUp-v0</text>
 
             <rect x="555" y="70" width="210" height="78" rx="8" fill="#dcfce7" stroke="#16a34a"></rect>
-            <text x="660" y="104" text-anchor="middle" font-weight="800">SB3 TD3</text>
-            <text x="660" y="128" text-anchor="middle" font-size="13">continuous controller</text>
+            <text x="660" y="104" text-anchor="middle" font-weight="800">SB3 Policies</text>
+            <text x="660" y="128" text-anchor="middle" font-size="13">TD3, SAC, PPO</text>
 
             <rect x="830" y="70" width="195" height="78" rx="8" fill="#fef3c7" stroke="#d97706"></rect>
             <text x="928" y="104" text-anchor="middle" font-weight="800">Artifacts</text>
@@ -473,6 +475,15 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Scaffold algorithm comparison</h3>
+              <p>
+                Added TD3, SAC, and PPO configs, timestamped artifact folders, and one
+                evaluator for reward, stability, cart travel, and action effort.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -489,8 +500,8 @@
           <tbody>
             <tr>
               <td>Algorithm comparison</td>
-              <td>Train TD3, SAC, and PPO with the same environment and evaluation script.</td>
-              <td>Shows the difference between off-policy and on-policy control in one system.</td>
+              <td>Run TD3, SAC, and PPO with the same environment, config style, and evaluation script.</td>
+              <td>Shows the difference between off-policy and on-policy control in one system. The scaffolding is now in place.</td>
             </tr>
             <tr>
               <td>Reward shaping</td>
@@ -672,7 +683,25 @@
         <div class="grid two">
           <div class="card">
             <h3>Train TD3</h3>
-            <pre><code>uv run cartpole-robot-train --timesteps 300000</code></pre>
+            <pre><code>uv run cartpole-robot-train --config configs/algorithms/td3.toml</code></pre>
+          </div>
+          <div class="card">
+            <h3>Train SAC or PPO</h3>
+            <pre><code>uv run cartpole-robot-train --config configs/algorithms/sac.toml
+uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
+          </div>
+          <div class="card">
+            <h3>Evaluate a policy</h3>
+            <pre><code>uv run cartpole-robot-eval \
+  --algo td3 \
+  --model artifacts/runs/td3/&lt;run-id&gt;/best/best_model.zip</code></pre>
+          </div>
+          <div class="card">
+            <h3>Compare reports</h3>
+            <pre><code>uv run cartpole-robot-compare \
+  artifacts/runs/td3/&lt;run-id&gt;/eval_metrics.json \
+  artifacts/runs/sac/&lt;run-id&gt;/eval_metrics.json \
+  artifacts/runs/ppo/&lt;run-id&gt;/eval_metrics.json</code></pre>
           </div>
           <div class="card">
             <h3>Watch the included policy</h3>
@@ -684,7 +713,7 @@
           </div>
           <div class="card">
             <h3>Open TensorBoard</h3>
-            <pre><code>uv run tensorboard --logdir runs</code></pre>
+            <pre><code>uv run tensorboard --logdir artifacts/runs</code></pre>
           </div>
         </div>
       </section>

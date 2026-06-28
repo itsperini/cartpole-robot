@@ -12,6 +12,7 @@ wheels/
 
 # Local training logs
 runs/
+artifacts/
 
 # Local generated datasets and reports
 datasets/
