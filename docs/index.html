@@ -181,6 +181,22 @@
         height: auto;
       }
 
+      .video-frame {
+        margin-top: 18px;
+        border: 1px solid var(--line);
+        background: #000;
+      }
+
+      .video-frame video {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .video-frame figcaption {
+        background: #ffffff;
+      }
+
       figcaption {
         padding: 10px 12px;
         color: var(--muted);
@@ -342,6 +358,16 @@
             <figcaption>Trained TD3 policy frame after swing-up and stabilization.</figcaption>
           </figure>
         </div>
+        <figure class="video-frame">
+          <video controls preload="metadata" poster="assets/td3_swingup_poster.png">
+            <source src="assets/td3_swingup.mp4" type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+          <figcaption>
+            TD3 policy rollout recorded from MuJoCo RGB frames. The controller swings the
+            pole up and stabilizes it near upright.
+          </figcaption>
+        </figure>
       </section>
 
       <section>
@@ -547,6 +573,42 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
       </section>
 
       <section>
+        <h2>Next Immediate Step: Robust Sim Datasets</h2>
+        <p>
+          The next improvement should not be hardware yet. Before moving toward cameras or
+          real motors, the simulator should produce a richer dataset that includes the
+          kinds of variation the model will eventually face.
+        </p>
+        <div class="grid three">
+          <div class="card">
+            <h3>Action and sensor noise</h3>
+            <p>
+              Randomize action noise, encoder noise, velocity-estimation noise, and small
+              observation delays.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Physical variation</h3>
+            <p>
+              Randomize cart mass, pole mass, pole length, joint damping, rail friction,
+              actuator gain, saturation, and control delay.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Disturbances</h3>
+            <p>
+              Add external pushes, imperfect resets, failed swing-ups, recovery episodes,
+              and noisy TD3 rollouts.
+            </p>
+          </div>
+        </div>
+        <div class="note">
+          This is the bridge between a demo and a research platform: the world model should
+          learn the family of plausible dynamics, not one perfectly clean MuJoCo rollout.
+        </div>
+      </section>
+
+      <section>
         <h2>Roadmap Toward VLA and Latent World Models</h2>
         <div class="diagram" aria-label="Research roadmap diagram">
           <svg width="1060" height="430" viewBox="0 0 1060 430" role="img">
@@ -577,27 +639,27 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
             <g>
               <circle cx="270" cy="210" r="32" fill="#ccfbf1" stroke="#0f766e"></circle>
               <text x="270" y="215" text-anchor="middle" font-weight="800">2</text>
-              <text x="270" y="270" text-anchor="middle" font-size="14">Sequence dynamics</text>
+              <text x="270" y="270" text-anchor="middle" font-size="14">Robust dataset</text>
             </g>
             <g>
               <circle cx="445" cy="210" r="32" fill="#dcfce7" stroke="#16a34a"></circle>
               <text x="445" y="215" text-anchor="middle" font-weight="800">3</text>
-              <text x="445" y="270" text-anchor="middle" font-size="14">Sim camera</text>
+              <text x="445" y="270" text-anchor="middle" font-size="14">Sequence dynamics</text>
             </g>
             <g>
               <circle cx="620" cy="210" r="32" fill="#ede9fe" stroke="#7c3aed"></circle>
               <text x="620" y="215" text-anchor="middle" font-weight="800">4</text>
-              <text x="620" y="270" text-anchor="middle" font-size="14">Latent prediction</text>
+              <text x="620" y="270" text-anchor="middle" font-size="14">Camera + latent model</text>
             </g>
             <g>
               <circle cx="795" cy="210" r="32" fill="#fef3c7" stroke="#d97706"></circle>
               <text x="795" y="215" text-anchor="middle" font-weight="800">5</text>
-              <text x="795" y="270" text-anchor="middle" font-size="14">ROS 2 hardware</text>
+              <text x="795" y="270" text-anchor="middle" font-size="14">Goal / VLA in sim</text>
             </g>
             <g>
               <circle cx="970" cy="210" r="32" fill="#ffe4e6" stroke="#e11d48"></circle>
               <text x="970" y="215" text-anchor="middle" font-weight="800">6</text>
-              <text x="970" y="270" text-anchor="middle" font-size="14">VLA policy</text>
+              <text x="970" y="270" text-anchor="middle" font-size="14">Hardware last</text>
             </g>
             <path d="M127 210 H238" stroke="#526071" stroke-width="2" marker-end="url(#roadArrow)"></path>
             <path d="M302 210 H413" stroke="#526071" stroke-width="2" marker-end="url(#roadArrow)"></path>
@@ -608,19 +670,19 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
               MLP ensemble
             </text>
             <text x="270" y="130" text-anchor="middle" font-size="13">
-              GRU or transformer
+              noise + randomization
             </text>
             <text x="445" y="130" text-anchor="middle" font-size="13">
-              RGB frames
+              GRU or transformer
             </text>
             <text x="620" y="130" text-anchor="middle" font-size="13">
-              JEPA-style z prediction
+              RGB + z prediction
             </text>
             <text x="795" y="130" text-anchor="middle" font-size="13">
-              sensors + motor bridge
+              language/goal-conditioned
             </text>
             <text x="970" y="130" text-anchor="middle" font-size="13">
-              goal/language/action
+              ROS 2 + safety
             </text>
           </svg>
         </div>
@@ -634,6 +696,11 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
             </tr>
           </thead>
           <tbody>
+            <tr>
+              <td>Robust dataset</td>
+              <td>Add noise, disturbances, domain randomization, noisy TD3, and recovery trajectories.</td>
+              <td>Makes future models learn a distribution of dynamics instead of a brittle clean simulator.</td>
+            </tr>
             <tr>
               <td>Sequence world model</td>
               <td>Train on windows of observations and actions instead of isolated transitions.</td>
@@ -655,14 +722,14 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
               <td>This is the natural bridge toward JEPA-style learning and scalable visual prediction.</td>
             </tr>
             <tr>
-              <td>ROS 2 hardware</td>
-              <td>Replace MuJoCo data sources with synchronized encoder, camera, and motor streams.</td>
-              <td>Creates the sim-to-real path while keeping the same dataset/model contracts.</td>
+              <td>VLA layer</td>
+              <td>Add goals or language as conditioning signals over vision and action, first in simulation.</td>
+              <td>Moves from a single-task controller toward instruction-conditioned behavior without risking hardware.</td>
             </tr>
             <tr>
-              <td>VLA layer</td>
-              <td>Add goals or language as conditioning signals over vision and action.</td>
-              <td>Moves from a single-task controller toward general instruction-conditioned behavior.</td>
+              <td>ROS 2 hardware</td>
+              <td>Replace MuJoCo data sources with synchronized encoder, camera, and motor streams.</td>
+              <td>This should come last, after robust simulation, vision diagnostics, safety wrappers, and replay tests.</td>
             </tr>
           </tbody>
         </table>
@@ -701,10 +768,46 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
       </section>
 
       <section>
-        <h2>Future Hardware Path</h2>
+        <h2>What To Learn Or Use Next</h2>
+        <p>
+          RT-2, pi0, Gemini Robotics, and JEPA-style systems are useful north-star
+          examples, but they are not the immediate implementation target for a single
+          cart-pole. The practical learning path is to build the missing rungs between
+          compact state modeling and large vision-language-action policies.
+        </p>
+        <div class="grid three">
+          <div class="card">
+            <h3>Near term</h3>
+            <p>
+              Domain randomization, sequence datasets, GRU/transformer dynamics, and
+              robust uncertainty diagnostics.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Middle term</h3>
+            <p>
+              Camera-frame datasets, image-to-state encoders, JEPA-style latent prediction,
+              and action-conditioned video/state forecasting.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Policy learning</h3>
+            <p>
+              For visuomotor policies, learn from Diffusion Policy, ACT-style action
+              chunking, and small open VLA projects before trying to imitate RT-2/pi0-scale
+              systems.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Future Hardware Path: Last, Not Next</h2>
         <p>
           The real setup can mirror the simulator contract if every hardware loop produces
-          a timestamped observation, action, and reward proxy. The planned hardware stack is:
+          a timestamped observation, action, and reward proxy. But hardware should come
+          after the simulated dataset and model stack are robust. The planned hardware
+          stack is:
         </p>
         <div class="grid three">
           <div class="card">
@@ -730,11 +833,10 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
       <section>
         <h2>How This Connects to VLA Research</h2>
         <p>
-          VLA systems combine vision, language, and action. RT-2 is an example of turning
-          vision-language models into robot-control models by training on robot action
-          data; pi0 is an example of a generalist robot policy direction; JEPA-style work
-          points toward predictive latent representations for understanding physical
-          dynamics.
+          VLA systems combine vision, language, and action. RT-2, pi0, and Gemini Robotics
+          are examples of the kind of generalist robot-policy direction we eventually care
+          about, while JEPA-style work points toward predictive latent representations. For
+          this repo, those are orientation points, not immediate dependencies.
         </p>
         <p>
           The local cart-pole project is deliberately smaller, but the research shape is
@@ -755,9 +857,27 @@ obs_{t+1} = obs_t + delta_obs_t</code></pre>
             <a href="https://arxiv.org/html/2410.24164v1">pi0 paper</a>.
           </li>
           <li>
+            <a href="https://deepmind.google/models/gemini-robotics/">Gemini Robotics model family</a>
+            and
+            <a href="https://deepmind.google/models/gemini-robotics/gemini-robotics-er/"
+              >Gemini Robotics-ER</a
+            >
+            for current embodied-reasoning references.
+          </li>
+          <li>
             <a href="https://ai.meta.com/research/vjepa/">Meta V-JEPA research page</a>
             and
             <a href="https://arxiv.org/abs/2506.09985">V-JEPA 2 paper</a>.
+          </li>
+          <li>
+            <a href="https://diffusion-policy.cs.columbia.edu/">Diffusion Policy project</a>
+            for a practical visuomotor policy-learning direction.
+          </li>
+          <li>
+            <a href="https://openvla.github.io/">OpenVLA</a>,
+            <a href="https://github.com/Physical-Intelligence/openpi">openpi</a>, and
+            <a href="https://github.com/huggingface/lerobot">LeRobot</a>
+            are useful open-source ecosystems to study after the sim dataset is stronger.
           </li>
         </ol>
       </section>
