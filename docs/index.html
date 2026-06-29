@@ -714,6 +714,36 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Bring TD3 back for robust training</h3>
+              <p>
+                Fine-tuned TD3 under <code>hardware_mild</code>. The promoted checkpoint
+                keeps 100% success on clean, friction, dynamics, pushes, and hardware-mild
+                evaluation, but still fails harsh two-step delay.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <h3>Add latency and delay-history experiments</h3>
+              <p>
+                Split delay into one-tick latency and two-tick delay, added hardware-delay
+                scenarios, and trained policies with four observation frames plus three
+                previous actions.
+              </p>
+            </div>
+          </div>
+          <div class="step">
+            <div>
+              <h3>Promote a TD3 delay-history policy</h3>
+              <p>
+                TD3 with observation/action history reaches 95% success on the harsh
+                two-step <code>delay</code> evaluation. It is kept as a specialized
+                delayed-control policy, not a universal replacement.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -765,6 +795,114 @@
             </tr>
           </tbody>
         </table>
+      </section>
+
+      <section>
+        <h2>Ticks, Latency, and Delay</h2>
+        <p>
+          In this project, a tick means one policy/control step. The MuJoCo model uses a
+          20 ms physics timestep and the environment advances two physics steps for each
+          policy action, so one policy tick is 40 ms. A one-tick delay is roughly 40 ms;
+          a two-tick delay is roughly 80 ms.
+        </p>
+        <div class="grid three stack-gap">
+          <div class="card">
+            <h3>One tick</h3>
+            <p>
+              The policy observes or actuates one control step late. At the current 25 Hz
+              policy rate, that is about 40 ms of sensor or command latency.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Two ticks</h3>
+            <p>
+              The policy uses information or commands from two control steps ago. At the
+              current rate, that is about 80 ms of latency.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Real hardware</h3>
+            <p>
+              Measure timestamps from encoder sample, firmware filtering, host receipt,
+              policy inference, command send, motor-driver update, and mechanical response.
+              Convert that total delay into policy ticks by dividing by 40 ms.
+            </p>
+          </div>
+        </div>
+        <div class="diagram stack-gap" aria-label="Control tick latency timeline">
+          <svg width="1060" height="250" viewBox="0 0 1060 250" role="img">
+            <defs>
+              <marker
+                id="tickArrow"
+                markerWidth="10"
+                markerHeight="8"
+                refX="9"
+                refY="4"
+                orient="auto"
+              >
+                <path d="M0,0 L10,4 L0,8 Z" fill="#526071"></path>
+              </marker>
+            </defs>
+            <line x1="90" y1="120" x2="970" y2="120" stroke="#cbd5e1" stroke-width="6"></line>
+            <g>
+              <line x1="130" y1="90" x2="130" y2="150" stroke="#2563eb" stroke-width="3"></line>
+              <text x="130" y="72" text-anchor="middle" font-weight="700">t</text>
+              <text x="130" y="178" text-anchor="middle" font-size="14">policy acts</text>
+            </g>
+            <g>
+              <line x1="360" y1="90" x2="360" y2="150" stroke="#0f766e" stroke-width="3"></line>
+              <text x="360" y="72" text-anchor="middle" font-weight="700">t+1</text>
+              <text x="360" y="178" text-anchor="middle" font-size="14">+40 ms</text>
+            </g>
+            <g>
+              <line x1="590" y1="90" x2="590" y2="150" stroke="#b45309" stroke-width="3"></line>
+              <text x="590" y="72" text-anchor="middle" font-weight="700">t+2</text>
+              <text x="590" y="178" text-anchor="middle" font-size="14">+80 ms</text>
+            </g>
+            <path d="M138 118 H352" stroke="#0f766e" stroke-width="3" marker-end="url(#tickArrow)"></path>
+            <path d="M138 136 H582" stroke="#b45309" stroke-width="3" marker-end="url(#tickArrow)"></path>
+            <text x="250" y="110" text-anchor="middle" font-size="14">one-tick latency</text>
+            <text x="360" y="154" text-anchor="middle" font-size="14">two-tick delay</text>
+            <text x="760" y="116" text-anchor="middle" font-size="14">
+              higher loop rates make each tick shorter; lower rates make each tick longer
+            </text>
+          </svg>
+        </div>
+        <h3 class="stack-gap">What researchers do</h3>
+        <div class="grid three stack-gap">
+          <div class="card">
+            <h3>Augment history</h3>
+            <p>
+              For constant delays, extend the policy input with recent actions and
+              observations so the delayed problem becomes closer to a Markov state.
+              This is the method used by the current TD3 delay-history policy.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Predict the present</h3>
+            <p>
+              Use a learned dynamics model, state estimator, or world model to infer the
+              current hidden state from delayed observations and past actions.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Randomize and measure</h3>
+            <p>
+              Sim2real pipelines often randomize latency, friction, masses, actuator
+              behavior, noise, and disturbances, then refine the simulator with real
+              measurements before deployment.
+            </p>
+          </div>
+        </div>
+        <div class="note">
+          Research pointers:
+          <a href="https://arxiv.org/abs/1810.07286">At Human Speed</a>,
+          <a href="https://openreview.net/forum?id=Z8UfDs4J46">Addressing Signal Delay</a>,
+          <a href="https://arxiv.org/abs/2403.12309">Delayed Observations via World Models</a>,
+          <a href="https://arxiv.org/abs/2502.15649">Robotic RL Simulation Pipeline</a>,
+          and
+          <a href="https://arxiv.org/abs/2502.10894">Athletic Loco-Manipulation Sim2Real</a>.
+        </div>
       </section>
 
       <section>
@@ -903,12 +1041,57 @@
             </p>
           </div>
         </div>
+        <div class="grid two stack-gap">
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_hardware_mild_rollout_poster.png">
+              <source src="assets/td3_hardware_mild_rollout.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              TD3 hardware-randomized policy under <code>hardware_mild</code>: friction,
+              mass, damping, force-limit, noise, and push variation.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_no_history_hardware_delay_failure_poster.png">
+              <source src="assets/td3_no_history_hardware_delay_failure.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              The same no-history TD3 policy under <code>hardware_delay</code>. It fails
+              quickly because the policy only sees one delayed 5D state.
+            </figcaption>
+          </figure>
+        </div>
         <h3 class="stack-gap">Delay-aware control</h3>
         <p>
           Delay changes the problem: one delayed observation is no longer enough to know
           the real control state. The delay-aware policies therefore use a 23-value input:
           four recent 5D observations plus three previous commanded actions.
         </p>
+        <div class="grid two stack-gap">
+          <figure>
+            <img
+              src="assets/delay_strategy_comparison.png"
+              alt="Chart comparing delay policy strategies"
+            />
+            <figcaption>
+              Delay-strategy comparison: no-history TD3 collapses under two-tick delay,
+              SAC history survives but lacks stable upright time, and TD3 history becomes
+              the strongest delayed-control baseline.
+            </figcaption>
+          </figure>
+          <div class="card">
+            <h3>Result so far</h3>
+            <p>
+              The best delayed policy is TD3 with four observation frames and three
+              previous actions. It reaches 95% success on <code>delay</code>, but only
+              60% on <code>hardware_delay</code>, so the next robustness step should
+              combine delay history with hardware randomization instead of treating them
+              as separate specialties.
+            </p>
+          </div>
+        </div>
         <div class="grid two stack-gap">
           <figure>
             <img
@@ -952,6 +1135,28 @@
               meaningful action and sensor delay.
             </p>
           </div>
+        </div>
+        <div class="grid two stack-gap">
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_delay_history_hardware_delay_rollout_poster.png">
+              <source src="assets/td3_delay_history_hardware_delay_rollout.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              TD3 delay-history under <code>hardware_delay</code>: improved over the
+              no-history policy, but still not reliable enough for hardware.
+            </figcaption>
+          </figure>
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/sac_delay_history_delay_rollout_poster.png">
+              <source src="assets/sac_delay_history_delay_rollout.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              SAC delay-history under <code>delay</code>: survives the episode more often
+              than no-history controllers, but spends too little time stably upright.
+            </figcaption>
+          </figure>
         </div>
       </section>
 

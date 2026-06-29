@@ -38,6 +38,27 @@ force = action * 10
 
 The reward encourages the pole to be upright and stable while penalizing cart drift, high velocity, and excessive force.
 
+### Control Ticks and Latency
+
+One tick is one policy/control step. The MuJoCo XML uses a 20 ms physics timestep,
+and the environment uses `frame_skip = 2`, so the policy acts every 40 ms:
+
+```text
+1 tick = 2 physics steps = 40 ms
+```
+
+Therefore:
+
+```text
+latency_mild = 1 delayed tick ~= 40 ms
+delay        = 2 delayed ticks ~= 80 ms
+```
+
+On hardware, measure the time from encoder sampling to policy inference to motor
+driver update, then divide that latency by 40 ms to estimate the equivalent number
+of simulated ticks. If the real loop runs at a different policy rate, recompute
+the tick duration from that real control period.
+
 ## Setup
 
 ```bash
