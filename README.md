@@ -20,6 +20,10 @@ The policy sees a 5D observation:
 [cart_position, cart_velocity, sin(pole_angle), cos(pole_angle), pole_angular_velocity]
 ```
 
+Delay-history policies intentionally expand this input with recent observations and
+previous actions. The included TD3 delay-history checkpoint uses 23 inputs:
+`4 * 5D observations + 3 * 1D actions`.
+
 The policy outputs one normalized action:
 
 ```text
@@ -160,10 +164,13 @@ The robust evaluator runs the same policy across these scenarios:
 clean          no extra stressors
 sensor_noise   encoder-like observation noise and small action noise
 friction       randomized rail/hinge damping and dry friction
-delay          observation and action delay
+latency_mild   one-step observation and action delay
+delay          two-step observation and action delay
 dynamics       randomized mass, damping, friction, gravity, and force limit
 pushes         repeated cart/pole velocity impulses during the episode
 hardware_mild  dynamics, friction, noise, force-limit variation, and pushes, without delay
+hardware_latency_mild  hardware_mild plus one-step delay
+hardware_delay hardware_mild plus two-step delay
 combined       a moderate mix of noise, delay, dynamics, and pushes
 ```
 
@@ -175,14 +182,14 @@ robustness.md
 robustness.png
 ```
 
-The trainer can also run inside a robustness scenario. The first useful target is
-`configs/algorithms/ppo_robust_pushes.toml`, which fine-tunes PPO under repeated
-push impulses so the policy practices recovery before hardware work.
+The trainer can also run inside a robustness scenario. Robust training now has
+three separate tracks instead of one overloaded "sim2real" policy:
 
-Only PPO has been fine-tuned with the push scenario so far. That was deliberate:
-TD3 and SAC already reached 100% success on the 20-episode push evaluation, while
-clean PPO reached 75%. PPO was also the lowest-effort solved policy, so it was the
-most interesting first candidate for push-specific recovery training.
+- `ppo_robust_pushes.toml` practices repeated disturbance recovery.
+- `td3_robust_hardware_mild.toml` practices noise, friction, dynamics variation,
+  force-limit variation, and pushes.
+- `td3_robust_delay_history.toml` practices two-step delay with an explicit
+  observation/action history window.
 
 Current PPO push-recovery result, evaluated over 20 episodes:
 
@@ -194,33 +201,81 @@ combined    20%      285.14   19.8%     7.5%      75%          8.203
 ```
 
 This is good enough to keep as a push-recovery checkpoint, but not a general
-sim2real solution yet. Delay and combined stressors still need their own training
-chapter.
+sim2real solution yet.
 
-The first hardware-randomized policy is SAC fine-tuned with
-`configs/algorithms/sac_robust_hardware_mild.toml`:
+The strongest current hardware-randomized policy is TD3 fine-tuned with
+`configs/algorithms/td3_robust_hardware_mild.toml`:
 
 ```bash
 uv run cartpole-robot-train \
-  --config configs/algorithms/sac_robust_hardware_mild.toml \
-  --resume models/best/sac_cartpole_swingup_best_20260629-005105.zip
+  --config configs/algorithms/td3_robust_hardware_mild.toml \
+  --resume models/best/td3_cartpole_swingup_best_20260628-012620.zip
 ```
 
-Current SAC hardware-randomized result, evaluated over 20 episodes:
+Current TD3 hardware-randomized result, evaluated over 20 episodes:
 
 ```text
-scenario       success  reward   upright  stable  termination  mean |force|
-clean          100%     1381.39   90.1%    90.1%       0%          0.971
-friction       100%     1365.92   88.9%    88.7%       0%          1.437
-dynamics       100%     1358.86   88.4%    88.2%       0%          1.269
-pushes         100%     1293.79   82.4%    79.8%       0%          2.227
-hardware_mild  100%     1321.24   85.4%    84.5%       0%          2.609
-combined        75%      955.28   60.8%    21.9%       5%          7.851
+scenario               success  reward   upright  stable  termination  mean |force|
+clean                  100%     1404.06   92.0%    92.0%       0%          2.041
+friction               100%     1383.62   90.6%    90.5%       0%          2.322
+dynamics               100%     1364.50   88.7%    88.6%       0%          2.436
+pushes                 100%     1337.94   85.5%    83.6%       0%          2.679
+hardware_mild          100%     1347.19   86.9%    85.9%       0%          3.296
+latency_mild            85%     1035.60   76.7%    32.6%       0%          8.277
+hardware_latency_mild   80%      924.50   55.8%    23.4%       0%          8.530
+combined                75%      928.24   55.6%    23.2%       0%          8.229
 ```
 
-PPO was also tested with `configs/algorithms/ppo_robust_hardware_mild.toml`, but
-it was not promoted because it improved friction/hardware robustness while
-reducing push recovery. SAC is the current best hardware-randomized candidate.
+This policy is better for hardware-style randomization and mild latency, but it
+still fails the harsher two-step `delay` and `hardware_delay` scenarios. That is
+expected: with delayed observations/actions, a single 5D observation is no longer
+enough to reconstruct the control state.
+
+Delay-aware policies use a history window:
+
+```text
+observation = 4 recent 5D observations + 3 previous actions = 23 inputs
+```
+
+Train TD3 with this delay-aware input:
+
+```bash
+uv run cartpole-robot-train \
+  --config configs/algorithms/td3_robust_delay_history.toml
+```
+
+Evaluate or watch it with the same history shape:
+
+```bash
+uv run cartpole-robot-robust-eval \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --observation-history-steps 4 \
+  --action-history-steps 3
+
+uv run cartpole-robot-watch \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenario delay \
+  --observation-history-steps 4 \
+  --action-history-steps 3
+```
+
+Current TD3 delay-history result, evaluated over 20 episodes:
+
+```text
+scenario               success  reward   upright  stable  termination  mean |force|
+clean                   60%      760.78   35.0%    34.5%       0%          7.687
+latency_mild            60%      975.10   53.6%    45.5%       0%          7.963
+delay                   95%     1056.75   60.8%    41.7%       0%          7.336
+hardware_latency_mild   45%      636.84   22.5%    18.6%       0%          7.821
+hardware_delay          60%      812.58   33.1%    22.1%       0%          6.794
+combined                40%      692.68   25.3%    18.7%       0%          7.798
+```
+
+This is a specialized delay controller, not the new default policy. Use the
+hardware-randomized TD3 checkpoint for hardware-like variation without major
+delay, and the delay-history TD3 checkpoint when testing delayed control.
 
 ## Included Models
 
@@ -228,6 +283,8 @@ This repo includes trained policies:
 
 ```bash
 models/best/td3_cartpole_swingup_best_20260628-012620.zip
+models/best/td3_cartpole_swingup_robust_hardware_mild_best_20260629-020520.zip
+models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip
 models/best/sac_cartpole_swingup_best_20260629-005105.zip
 models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip
 models/best/ppo_cartpole_swingup_best_20260629-010531.zip
@@ -262,6 +319,26 @@ Watch the SAC hardware-randomized policy:
 uv run cartpole-robot-watch \
   --algo sac \
   --model models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip
+```
+
+Watch the TD3 hardware-randomized policy:
+
+```bash
+uv run cartpole-robot-watch \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_robust_hardware_mild_best_20260629-020520.zip \
+  --scenario hardware_mild
+```
+
+Watch the TD3 delay-history policy:
+
+```bash
+uv run cartpole-robot-watch \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenario delay \
+  --observation-history-steps 4 \
+  --action-history-steps 3
 ```
 
 Watch another checkpoint:
@@ -316,4 +393,4 @@ src/cartpole_robot/
 
 Stable-Baselines3 model zips contain the policy weights, optimizer states, algorithm metadata, action and observation spaces, version info, and system info. They can be loaded directly with `TD3.load(...)`.
 
-The included best model is about 5.7 MiB.
+The largest included model is about 6.0 MiB.

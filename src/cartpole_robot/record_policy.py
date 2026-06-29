@@ -10,7 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 from cartpole_robot.algorithms import load_policy
 from cartpole_robot.registration import ENV_ID, make_env
-from cartpole_robot.robustness import make_robust_env, scenario_names
+from cartpole_robot.robustness import make_robust_env, scenario_names, wrap_history
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -41,6 +41,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--device", default="auto")
     parser.add_argument("--stochastic", action="store_true")
     parser.add_argument(
+        "--observation-history-steps",
+        type=int,
+        default=1,
+        help="Number of recent observations exposed to the policy.",
+    )
+    parser.add_argument(
+        "--action-history-steps",
+        type=int,
+        default=0,
+        help="Number of previous commanded actions exposed to the policy.",
+    )
+    parser.add_argument(
         "--push-flash-frames",
         type=int,
         default=14,
@@ -57,11 +69,18 @@ def make_recording_env(args: argparse.Namespace):
         "height": args.height,
     }
     if args.scenario == "clean":
-        return make_env(**env_kwargs)
+        env = make_env(**env_kwargs)
+        return wrap_history(
+            env,
+            observation_history_steps=args.observation_history_steps,
+            action_history_steps=args.action_history_steps,
+        )
 
     return make_robust_env(
         args.scenario,
         seed=args.seed,
+        observation_history_steps=args.observation_history_steps,
+        action_history_steps=args.action_history_steps,
         **env_kwargs,
     )
 

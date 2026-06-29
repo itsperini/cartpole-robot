@@ -32,10 +32,13 @@ DEFAULT_SCENARIOS = [
     "clean",
     "sensor_noise",
     "friction",
+    "latency_mild",
     "delay",
     "dynamics",
     "pushes",
     "hardware_mild",
+    "hardware_latency_mild",
+    "hardware_delay",
     "combined",
 ]
 
@@ -83,6 +86,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--stochastic", action="store_true")
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--observation-history-steps",
+        type=int,
+        default=1,
+        help="Number of recent observations exposed to the policy.",
+    )
+    parser.add_argument(
+        "--action-history-steps",
+        type=int,
+        default=0,
+        help="Number of previous commanded actions exposed to the policy.",
+    )
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -209,11 +224,15 @@ def evaluate_scenario(
     seed: int,
     max_steps: int,
     deterministic: bool,
+    observation_history_steps: int,
+    action_history_steps: int,
 ) -> dict[str, Any]:
     env = make_robust_env(
         scenario,
         max_episode_steps=max_steps,
         seed=seed,
+        observation_history_steps=observation_history_steps,
+        action_history_steps=action_history_steps,
     )
     try:
         episode_metrics = [
@@ -340,6 +359,8 @@ def main(argv: Sequence[str] | None = None) -> None:
             seed=args.seed + index * 10_000,
             max_steps=args.max_steps,
             deterministic=deterministic,
+            observation_history_steps=args.observation_history_steps,
+            action_history_steps=args.action_history_steps,
         )
         for index, scenario in enumerate(args.scenarios)
     ]
@@ -352,6 +373,8 @@ def main(argv: Sequence[str] | None = None) -> None:
         "model": str(args.model),
         "episodes_per_scenario": args.episodes,
         "max_steps": args.max_steps,
+        "observation_history_steps": args.observation_history_steps,
+        "action_history_steps": args.action_history_steps,
         "scenarios": results,
     }
     json_path = output_dir / "robustness.json"

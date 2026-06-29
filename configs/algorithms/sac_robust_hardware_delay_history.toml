@@ -1,0 +1,16 @@
+algo = "sac"
+timesteps = 500000
+seed = 47
+max_steps = 500
+learning_rate = 0.0003
+gamma = 0.99
+batch_size = 256
+eval_every = 20000
+checkpoint_every = 100000
+robust_scenario = "hardware_delay"
+observation_history_steps = 4
+action_history_steps = 3
+buffer_size = 1000000
+learning_starts = 10000
+tau = 0.005
+ent_coef = "auto"

@@ -779,8 +779,9 @@
           <div class="card">
             <h3>Action and sensor noise</h3>
             <p>
-              The <code>sensor_noise</code> and <code>delay</code> scenarios add
-              encoder-like noise, action noise, and delayed actions/observations.
+              The <code>sensor_noise</code>, <code>latency_mild</code>, and
+              <code>delay</code> scenarios add encoder-like noise, action noise,
+              and delayed actions/observations.
             </p>
           </div>
           <div class="card">
@@ -800,9 +801,9 @@
           </div>
         </div>
         <div class="note">
-          The trainer can now run inside a robustness scenario. The first focused
-          experiment is PPO fine-tuning with <code>pushes</code>, so the policy practices
-          recovering from cart and pole velocity impulses before any hardware work.
+          The trainer can now run inside robustness scenarios. The project keeps
+          these as separate chapters: push recovery, hardware randomization, and
+          delay-aware control with observation/action history.
         </div>
         <div class="grid two stack-gap">
           <figure>
@@ -821,7 +822,7 @@
               Training directly on pushes improved the disturbance case from the
               clean PPO's 75% success to 95% success over 20 evaluation episodes.
               Clean swing-up stayed solved, but delay, randomized dynamics, and combined
-              stressors are still separate problems rather than solved sim2real transfer.
+              stressors need separate training rather than one overloaded policy.
             </p>
           </div>
         </div>
@@ -876,28 +877,79 @@
         <p>
           Since the firmware can choose the command interface, the simulator can keep a
           normalized action while the hardware controller later maps that to force,
-          velocity, or acceleration. The next useful sim step is therefore parameter
+          velocity, or acceleration. The useful sim step here is therefore parameter
           randomization: friction, damping, mass, force limits, small sensor/action noise,
           and pushes.
         </p>
         <div class="grid two stack-gap">
           <figure>
             <img
-              src="assets/sac_hardware_mild_robustness.png"
-              alt="Robustness chart for the SAC hardware-randomized policy"
+              src="assets/td3_hardware_mild_robustness.png"
+              alt="Robustness chart for the TD3 hardware-randomized policy"
             />
             <figcaption>
-              SAC hardware-randomized checkpoint evaluated across clean, noisy, friction,
-              delayed, randomized, pushed, hardware-mild, and combined scenarios.
+              TD3 hardware-randomized checkpoint evaluated across clean, noisy,
+              friction, latency, delayed, randomized, pushed, hardware, and
+              combined scenarios.
             </figcaption>
           </figure>
           <div class="card">
             <h3>Current best hardware candidate</h3>
             <p>
-              SAC fine-tuned under <code>hardware_mild</code> reaches 100% success on
-              clean, friction, dynamics, pushes, and hardware-mild evaluation. It is the
-              best current candidate for cautious state-based hardware transfer. Delay
-              remains the main unsolved weakness and should be trained separately.
+              TD3 fine-tuned under <code>hardware_mild</code> reaches 100% success on
+              clean, friction, dynamics, pushes, and hardware-mild evaluation, with
+              stronger mild-latency behavior than the clean TD3 checkpoint. It still
+              fails harsh two-step delay, so delay is treated as its own policy family.
+            </p>
+          </div>
+        </div>
+        <h3 class="stack-gap">Delay-aware control</h3>
+        <p>
+          Delay changes the problem: one delayed observation is no longer enough to know
+          the real control state. The delay-aware policies therefore use a 23-value input:
+          four recent 5D observations plus three previous commanded actions.
+        </p>
+        <div class="grid two stack-gap">
+          <figure>
+            <img
+              src="assets/td3_delay_history_robustness.png"
+              alt="Robustness chart for the TD3 delay-history policy"
+            />
+            <figcaption>
+              TD3 with observation/action history reaches 95% success on the harsh
+              two-step <code>delay</code> scenario. It is specialized for delayed control,
+              not a replacement for the hardware-randomized policy.
+            </figcaption>
+          </figure>
+          <figure>
+            <img
+              src="assets/sac_delay_history_robustness.png"
+              alt="Robustness chart for the SAC delay-history policy"
+            />
+            <figcaption>
+              SAC with the same history window learned to survive delay but did not
+              achieve enough stable upright time, making it a useful comparison baseline.
+            </figcaption>
+          </figure>
+        </div>
+        <div class="grid two stack-gap">
+          <figure class="video-frame">
+            <video controls preload="metadata" poster="assets/td3_delay_history_rollout_poster.png">
+              <source src="assets/td3_delay_history_rollout.mp4" type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+            <figcaption>
+              TD3 delay-history rollout in the two-step <code>delay</code> scenario,
+              using four observation frames and three previous actions as policy input.
+            </figcaption>
+          </figure>
+          <div class="card">
+            <h3>Interpretation</h3>
+            <p>
+              This is not one universal policy. The hardware-randomized TD3 checkpoint
+              is better for friction, mass, noise, and pushes without major latency.
+              The delay-history TD3 checkpoint is better when the control loop has
+              meaningful action and sensor delay.
             </p>
           </div>
         </div>
@@ -1051,14 +1103,22 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
           <div class="card">
             <h3>Train hardware randomization</h3>
             <pre><code>uv run cartpole-robot-train \
-  --config configs/algorithms/sac_robust_hardware_mild.toml \
-  --resume models/best/sac_cartpole_swingup_best_20260629-005105.zip</code></pre>
+  --config configs/algorithms/td3_robust_hardware_mild.toml \
+  --resume models/best/td3_cartpole_swingup_best_20260628-012620.zip</code></pre>
+          </div>
+          <div class="card">
+            <h3>Train delay history</h3>
+            <pre><code>uv run cartpole-robot-train \
+  --config configs/algorithms/td3_robust_delay_history.toml</code></pre>
           </div>
           <div class="card">
             <h3>Watch a trained policy</h3>
             <pre><code>uv run cartpole-robot-watch \
-  --algo sac \
-  --model models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip</code></pre>
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenario delay \
+  --observation-history-steps 4 \
+  --action-history-steps 3</code></pre>
           </div>
           <div class="card">
             <h3>Run a random rollout</h3>

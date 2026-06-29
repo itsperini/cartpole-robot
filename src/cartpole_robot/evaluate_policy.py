@@ -11,6 +11,7 @@ import numpy as np
 
 from cartpole_robot.algorithms import load_policy
 from cartpole_robot.registration import ENV_ID, make_env
+from cartpole_robot.robustness import wrap_history
 
 
 UPRIGHT_THRESHOLD_RADIANS = 0.2
@@ -58,6 +59,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--render-fps", type=float, default=25.0)
     parser.add_argument("--device", default="auto")
     parser.add_argument(
+        "--observation-history-steps",
+        type=int,
+        default=1,
+        help="Number of recent observations exposed to the policy.",
+    )
+    parser.add_argument(
+        "--action-history-steps",
+        type=int,
+        default=0,
+        help="Number of previous commanded actions exposed to the policy.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=None,
@@ -75,6 +88,7 @@ def evaluate_episode(
     max_steps: int,
     deterministic: bool,
     render_delay: float,
+    observation_history_steps: int,
 ) -> EpisodeMetrics:
     observation, _ = env.reset(seed=seed)
     total_reward = 0.0
@@ -93,9 +107,14 @@ def evaluate_episode(
         observation, reward, terminated, truncated, info = env.step(action)
 
         total_reward += float(reward)
-        cart_position = float(observation[0])
-        pole_cos = float(observation[3])
-        pole_angular_velocity = float(observation[4])
+        base_offset = (observation_history_steps - 1) * 5
+        current_observation = np.asarray(
+            observation[base_offset : base_offset + 5],
+            dtype=np.float32,
+        )
+        cart_position = float(current_observation[0])
+        pole_cos = float(current_observation[3])
+        pole_angular_velocity = float(current_observation[4])
         is_upright = pole_cos > upright_threshold
         is_stable = is_upright and abs(pole_angular_velocity) < STABLE_ANGULAR_VELOCITY
 
@@ -181,6 +200,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         render_mode="human" if args.render else None,
         max_episode_steps=args.max_steps,
     )
+    env = wrap_history(
+        env,
+        observation_history_steps=args.observation_history_steps,
+        action_history_steps=args.action_history_steps,
+    )
 
     try:
         algorithm, model = load_policy(
@@ -199,6 +223,7 @@ def main(argv: Sequence[str] | None = None) -> None:
                 max_steps=args.max_steps,
                 deterministic=not args.stochastic,
                 render_delay=render_delay,
+                observation_history_steps=args.observation_history_steps,
             )
             for episode in range(1, args.episodes + 1)
         ]

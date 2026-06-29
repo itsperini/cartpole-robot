@@ -17,7 +17,7 @@ from stable_baselines3.common.noise import NormalActionNoise
 
 from cartpole_robot.algorithms import ALGORITHM_CLASSES, normalize_algorithm
 from cartpole_robot.registration import ENV_ID, make_env, register_env
-from cartpole_robot.robustness import make_robust_env, scenario_names
+from cartpole_robot.robustness import make_robust_env, scenario_names, wrap_history
 
 
 COMMON_DEFAULTS: dict[str, Any] = {
@@ -32,6 +32,8 @@ COMMON_DEFAULTS: dict[str, Any] = {
     "device": "auto",
     "n_envs": 1,
     "robust_scenario": "clean",
+    "observation_history_steps": 1,
+    "action_history_steps": 0,
 }
 
 
@@ -91,6 +93,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         choices=scenario_names(),
         default=None,
         help="Optional robust-simulation scenario for training and eval.",
+    )
+    parser.add_argument(
+        "--observation-history-steps",
+        type=int,
+        default=None,
+        help="Number of recent observations exposed to the policy.",
+    )
+    parser.add_argument(
+        "--action-history-steps",
+        type=int,
+        default=None,
+        help="Number of previous commanded actions exposed to the policy.",
     )
     parser.add_argument(
         "--artifact-root",
@@ -165,6 +179,8 @@ def resolved_config(args: argparse.Namespace) -> dict[str, Any]:
         "device",
         "n_envs",
         "robust_scenario",
+        "observation_history_steps",
+        "action_history_steps",
         "buffer_size",
         "learning_starts",
         "tau",
@@ -224,31 +240,53 @@ def make_training_env(config: dict[str, Any]):
         raise ValueError("n_envs must be positive.")
 
     robust_scenario = str(config.get("robust_scenario", "clean"))
+    observation_history_steps = int(config.get("observation_history_steps", 1))
+    action_history_steps = int(config.get("action_history_steps", 0))
     if n_envs == 1:
         if robust_scenario == "clean":
             env = make_env(max_episode_steps=int(config["max_steps"]))
+            env = wrap_history(
+                env,
+                observation_history_steps=observation_history_steps,
+                action_history_steps=action_history_steps,
+            )
         else:
             env = make_robust_env(
                 robust_scenario,
                 max_episode_steps=int(config["max_steps"]),
                 seed=int(config["seed"]),
+                observation_history_steps=observation_history_steps,
+                action_history_steps=action_history_steps,
             )
         return Monitor(env)
 
     if robust_scenario == "clean":
-        register_env()
-        return make_vec_env(
-            ENV_ID,
-            n_envs=n_envs,
-            seed=int(config["seed"]),
-            env_kwargs={"max_episode_steps": int(config["max_steps"])},
-        )
+        if observation_history_steps == 1 and action_history_steps == 0:
+            register_env()
+            return make_vec_env(
+                ENV_ID,
+                n_envs=n_envs,
+                seed=int(config["seed"]),
+                env_kwargs={"max_episode_steps": int(config["max_steps"])},
+            )
+
+        def make_clean_env():
+            env = make_env(max_episode_steps=int(config["max_steps"]))
+            return wrap_history(
+                env,
+                observation_history_steps=observation_history_steps,
+                action_history_steps=action_history_steps,
+            )
+
+        return make_vec_env(make_clean_env, n_envs=n_envs, seed=int(config["seed"]))
 
     def make_single_env():
         return make_robust_env(
             robust_scenario,
             max_episode_steps=int(config["max_steps"]),
             seed=int(config["seed"]),
+            observation_history_steps=observation_history_steps,
+            action_history_steps=action_history_steps,
         )
 
     return make_vec_env(make_single_env, n_envs=n_envs, seed=int(config["seed"]))
@@ -256,14 +294,24 @@ def make_training_env(config: dict[str, Any]):
 
 def make_eval_env(config: dict[str, Any]) -> Monitor:
     robust_scenario = str(config.get("robust_scenario", "clean"))
+    observation_history_steps = int(config.get("observation_history_steps", 1))
+    action_history_steps = int(config.get("action_history_steps", 0))
     if robust_scenario == "clean":
-        return Monitor(make_env(max_episode_steps=int(config["max_steps"])))
+        env = make_env(max_episode_steps=int(config["max_steps"]))
+        env = wrap_history(
+            env,
+            observation_history_steps=observation_history_steps,
+            action_history_steps=action_history_steps,
+        )
+        return Monitor(env)
 
     return Monitor(
         make_robust_env(
             robust_scenario,
             max_episode_steps=int(config["max_steps"]),
             seed=int(config["seed"]) + 1_000_000,
+            observation_history_steps=observation_history_steps,
+            action_history_steps=action_history_steps,
         )
     )
 

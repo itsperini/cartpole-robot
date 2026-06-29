@@ -47,6 +47,10 @@ SCENARIOS: dict[str, RobustnessConfig] = {
         observation_delay_steps=2,
         action_delay_steps=2,
     ),
+    "latency_mild": RobustnessConfig(
+        observation_delay_steps=1,
+        action_delay_steps=1,
+    ),
     "friction": RobustnessConfig(
         slider_damping_scale_range=(0.4, 2.5),
         hinge_damping_scale_range=(0.4, 2.5),
@@ -85,6 +89,42 @@ SCENARIOS: dict[str, RobustnessConfig] = {
         cart_velocity_impulse_range=(-0.25, 0.25),
         pole_angular_velocity_impulse_range=(-1.8, 1.8),
     ),
+    "hardware_latency_mild": RobustnessConfig(
+        observation_noise_std=(0.01, 0.035, 0.01, 0.01, 0.05),
+        action_noise_std=0.02,
+        observation_delay_steps=1,
+        action_delay_steps=1,
+        cart_mass_scale_range=(0.85, 1.15),
+        pole_mass_scale_range=(0.8, 1.2),
+        slider_damping_scale_range=(0.6, 2.2),
+        hinge_damping_scale_range=(0.6, 2.2),
+        slider_frictionloss_range=(0.0, 0.03),
+        hinge_frictionloss_range=(0.0, 0.01),
+        force_limit_scale_range=(0.8, 1.15),
+        gravity_z_range=(-10.05, -9.55),
+        push_start_step=100,
+        push_interval_steps=100,
+        cart_velocity_impulse_range=(-0.25, 0.25),
+        pole_angular_velocity_impulse_range=(-1.8, 1.8),
+    ),
+    "hardware_delay": RobustnessConfig(
+        observation_noise_std=(0.01, 0.035, 0.01, 0.01, 0.05),
+        action_noise_std=0.02,
+        observation_delay_steps=2,
+        action_delay_steps=2,
+        cart_mass_scale_range=(0.85, 1.15),
+        pole_mass_scale_range=(0.8, 1.2),
+        slider_damping_scale_range=(0.6, 2.2),
+        hinge_damping_scale_range=(0.6, 2.2),
+        slider_frictionloss_range=(0.0, 0.03),
+        hinge_frictionloss_range=(0.0, 0.01),
+        force_limit_scale_range=(0.8, 1.15),
+        gravity_z_range=(-10.05, -9.55),
+        push_start_step=100,
+        push_interval_steps=100,
+        cart_velocity_impulse_range=(-0.25, 0.25),
+        pole_angular_velocity_impulse_range=(-1.8, 1.8),
+    ),
     "combined": RobustnessConfig(
         observation_noise_std=(0.015, 0.05, 0.015, 0.015, 0.08),
         action_noise_std=0.03,
@@ -104,6 +144,110 @@ SCENARIOS: dict[str, RobustnessConfig] = {
         pole_angular_velocity_impulse_range=(-1.8, 1.8),
     ),
 }
+
+
+class ObservationActionHistoryWrapper(gym.Wrapper):
+    """Expose a short history so delayed control is closer to Markov."""
+
+    def __init__(
+        self,
+        env: gym.Env,
+        *,
+        observation_history_steps: int = 1,
+        action_history_steps: int = 0,
+    ) -> None:
+        super().__init__(env)
+        self.observation_history_steps = int(observation_history_steps)
+        self.action_history_steps = int(action_history_steps)
+        if self.observation_history_steps < 1:
+            raise ValueError("observation_history_steps must be at least 1.")
+        if self.action_history_steps < 0:
+            raise ValueError("action_history_steps cannot be negative.")
+        if not isinstance(self.env.observation_space, gym.spaces.Box):
+            raise TypeError("Observation history requires a Box observation space.")
+        if not isinstance(self.env.action_space, gym.spaces.Box):
+            raise TypeError("Action history requires a Box action space.")
+
+        self._base_observation_shape = self.env.observation_space.shape
+        self._base_action_shape = self.env.action_space.shape
+        if len(self._base_observation_shape) != 1:
+            raise ValueError("Observation history expects a flat observation space.")
+        if len(self._base_action_shape) != 1:
+            raise ValueError("Action history expects a flat action space.")
+
+        observation_low = np.asarray(
+            self.env.observation_space.low,
+            dtype=np.float32,
+        ).reshape(-1)
+        observation_high = np.asarray(
+            self.env.observation_space.high,
+            dtype=np.float32,
+        ).reshape(-1)
+        action_low = np.asarray(self.env.action_space.low, dtype=np.float32).reshape(-1)
+        action_high = np.asarray(
+            self.env.action_space.high,
+            dtype=np.float32,
+        ).reshape(-1)
+
+        low_parts = [np.tile(observation_low, self.observation_history_steps)]
+        high_parts = [np.tile(observation_high, self.observation_history_steps)]
+        if self.action_history_steps > 0:
+            low_parts.append(np.tile(action_low, self.action_history_steps))
+            high_parts.append(np.tile(action_high, self.action_history_steps))
+
+        self.observation_space = gym.spaces.Box(
+            low=np.concatenate(low_parts).astype(np.float32),
+            high=np.concatenate(high_parts).astype(np.float32),
+            dtype=np.float32,
+        )
+        self._observations: deque[np.ndarray] = deque(
+            maxlen=self.observation_history_steps
+        )
+        self._actions: deque[np.ndarray] = deque(maxlen=self.action_history_steps)
+
+    def reset(self, *, seed: int | None = None, options: dict[str, Any] | None = None):
+        observation, info = self.env.reset(seed=seed, options=options)
+        observation_array = self._as_observation(observation)
+        self._observations.clear()
+        for _ in range(self.observation_history_steps):
+            self._observations.append(observation_array.copy())
+        self._reset_actions()
+
+        info = dict(info)
+        info.update(self._history_info())
+        return self._history_observation(), info
+
+    def step(self, action):
+        observation, reward, terminated, truncated, info = self.env.step(action)
+        self._observations.append(self._as_observation(observation))
+        if self.action_history_steps > 0:
+            self._actions.append(self._as_action(action))
+
+        info = dict(info)
+        info.update(self._history_info())
+        return self._history_observation(), reward, terminated, truncated, info
+
+    def _reset_actions(self) -> None:
+        self._actions.clear()
+        zero_action = np.zeros(self._base_action_shape, dtype=np.float32).reshape(-1)
+        for _ in range(self.action_history_steps):
+            self._actions.append(zero_action.copy())
+
+    def _history_observation(self) -> np.ndarray:
+        parts = [*self._observations, *self._actions]
+        return np.concatenate(parts).astype(np.float32)
+
+    def _as_observation(self, observation: Any) -> np.ndarray:
+        return np.asarray(observation, dtype=np.float32).reshape(-1)
+
+    def _as_action(self, action: Any) -> np.ndarray:
+        return np.asarray(action, dtype=np.float32).reshape(-1)
+
+    def _history_info(self) -> dict[str, int]:
+        return {
+            "observation_history_steps": self.observation_history_steps,
+            "action_history_steps": self.action_history_steps,
+        }
 
 
 @dataclass(frozen=True)
@@ -401,21 +545,44 @@ def resolve_robustness_config(scenario: str) -> RobustnessConfig:
         raise ValueError(f"Unknown robustness scenario '{scenario}'. Choices: {choices}.") from exc
 
 
+def wrap_history(
+    env: gym.Env,
+    *,
+    observation_history_steps: int = 1,
+    action_history_steps: int = 0,
+) -> gym.Env:
+    if int(observation_history_steps) == 1 and int(action_history_steps) == 0:
+        return env
+
+    return ObservationActionHistoryWrapper(
+        env,
+        observation_history_steps=observation_history_steps,
+        action_history_steps=action_history_steps,
+    )
+
+
 def make_robust_env(
     scenario: str = "clean",
     *,
     render_mode: str | None = None,
     max_episode_steps: int | None = DEFAULT_MAX_EPISODE_STEPS,
     seed: int | None = None,
+    observation_history_steps: int = 1,
+    action_history_steps: int = 0,
     **kwargs: Any,
-) -> RobustnessWrapper:
+) -> gym.Env:
     env = make_env(
         render_mode=render_mode,
         max_episode_steps=max_episode_steps,
         **kwargs,
     )
-    return RobustnessWrapper(
+    robust_env = RobustnessWrapper(
         env,
         resolve_robustness_config(scenario),
         seed=seed,
+    )
+    return wrap_history(
+        robust_env,
+        observation_history_steps=observation_history_steps,
+        action_history_steps=action_history_steps,
     )
