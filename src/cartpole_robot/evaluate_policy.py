@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 
 from cartpole_robot.algorithms import load_policy
+from cartpole_robot.control_loop import control_loop_profile_names, wrap_control_loop
 from cartpole_robot.registration import ENV_ID, make_env
 from cartpole_robot.robustness import wrap_history
 
@@ -58,6 +59,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--render", action="store_true")
     parser.add_argument("--render-fps", type=float, default=25.0)
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--control-loop-profile",
+        choices=control_loop_profile_names(),
+        default="none",
+        help="Optional hardware-like control loop timing profile.",
+    )
     parser.add_argument(
         "--observation-history-steps",
         type=int,
@@ -200,6 +207,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         render_mode="human" if args.render else None,
         max_episode_steps=args.max_steps,
     )
+    env = wrap_control_loop(
+        env,
+        profile=args.control_loop_profile,
+        seed=args.seed,
+    )
     env = wrap_history(
         env,
         observation_history_steps=args.observation_history_steps,
@@ -239,6 +251,9 @@ def main(argv: Sequence[str] | None = None) -> None:
             "algorithm": algorithm,
             "env_id": ENV_ID,
             "model": str(args.model),
+            "control_loop_profile": args.control_loop_profile,
+            "observation_history_steps": args.observation_history_steps,
+            "action_history_steps": args.action_history_steps,
             "episodes": [asdict(episode) for episode in episodes],
             "summary": summary,
         }

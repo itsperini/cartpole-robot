@@ -121,6 +121,7 @@
         color: #334155;
         padding: 6px 10px;
         font-size: 0.88rem;
+        text-decoration: none;
       }
 
       .grid {
@@ -312,6 +313,7 @@
           <span class="tag">Stable-Baselines3 TD3 / SAC / PPO</span>
           <span class="tag">Continuous control</span>
           <span class="tag">Algorithm comparison</span>
+          <a class="tag" href="status.html">Project status</a>
           <span class="tag">Visual RL next</span>
           <span class="tag">Sim2real later</span>
         </div>
@@ -319,9 +321,9 @@
         <p>
           This project is a focused learning track for robotics reinforcement learning
           using one controllable system: a MuJoCo cart-pole with normalized continuous
-          force control. The current chapter is model-free state-based RL: a trained TD3
-          baseline is now compared against SAC and PPO. Next chapters should make the
-          simulator robust, add camera observations, and prepare for real hardware.
+          force control. The current chapter is robust state-based control: trained TD3,
+          SAC, and PPO policies are preserved, then tested with noise, friction,
+          disturbances, delay, and opt-in hardware-like control-loop profiles.
         </p>
       </section>
 
@@ -357,6 +359,38 @@
             />
             <figcaption>Trained TD3 policy frame after swing-up and stabilization.</figcaption>
           </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>Project Status Snapshot</h2>
+        <p>
+          The project now keeps experiments modular. Clean swing-up, push recovery,
+          hardware randomization, and delay-history controllers remain separate so each
+          checkpoint can be reproduced instead of overwritten by the next idea.
+        </p>
+        <div class="grid three stack-gap">
+          <div class="card">
+            <h3>Preserved behavior</h3>
+            <p>
+              All new control-loop effects default to <code>none</code>, so previous
+              commands and trained checkpoints keep their old behavior.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Current work</h3>
+            <p>
+              A new wrapper adds opt-in latency, jitter, action slew limits, deadband,
+              low-pass filtering, and encoder-like quantization.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Living map</h3>
+            <p>
+              Open <a href="status.html">the project status page</a> for the current
+              checkpoint matrix, profiles, and recommended next experiments.
+            </p>
+          </div>
         </div>
       </section>
 
@@ -744,6 +778,16 @@
               </p>
             </div>
           </div>
+          <div class="step">
+            <div>
+              <h3>Add modular control-loop profiles</h3>
+              <p>
+                Added an opt-in control-loop wrapper for latency, jitter, action slew
+                limits, deadband, low-pass filtering, and encoder-like quantization while
+                keeping previous configs on the default <code>none</code> profile.
+              </p>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -881,8 +925,8 @@
           <div class="card">
             <h3>Predict the present</h3>
             <p>
-              Use a learned dynamics model, state estimator, or world model to infer the
-              current hidden state from delayed observations and past actions.
+              Use a state estimator or learned dynamics predictor to infer the current
+              hidden state from delayed observations and past actions.
             </p>
           </div>
           <div class="card">
@@ -898,10 +942,49 @@
           Research pointers:
           <a href="https://arxiv.org/abs/1810.07286">At Human Speed</a>,
           <a href="https://openreview.net/forum?id=Z8UfDs4J46">Addressing Signal Delay</a>,
-          <a href="https://arxiv.org/abs/2403.12309">Delayed Observations via World Models</a>,
           <a href="https://arxiv.org/abs/2502.15649">Robotic RL Simulation Pipeline</a>,
           and
           <a href="https://arxiv.org/abs/2502.10894">Athletic Loco-Manipulation Sim2Real</a>.
+        </div>
+      </section>
+
+      <section>
+        <h2>Control-Loop Realism Profiles</h2>
+        <p>
+          Robust scenarios model environment variation. Control-loop profiles model the
+          command and sensing interface around the policy. They are opt-in and default to
+          <code>none</code>, so previous experiments remain reproducible.
+        </p>
+        <div class="grid three stack-gap">
+          <div class="card">
+            <h3>Latency and jitter</h3>
+            <p>
+              <code>policy_25hz_latency</code> and <code>policy_25hz_jitter</code> test
+              one-tick latency with optional timing variation at the current 25 Hz policy
+              rate.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Hardware-safe loop</h3>
+            <p>
+              <code>policy_25hz_hardware_safe</code> adds action slew limits, deadband,
+              observation filtering, and encoder-like quantization on top of mild timing
+              effects.
+            </p>
+          </div>
+          <div class="card">
+            <h3>Delay-history training</h3>
+            <p>
+              <code>policy_25hz_hardware_delay</code> combines two-tick delay with the
+              same hardware-facing effects, meant for policies that receive observation
+              and action history.
+            </p>
+          </div>
+        </div>
+        <div class="note">
+          Prefer <code>hardware_mild</code> plus a control-loop profile when testing
+          physical variation and timing together. Use <code>hardware_delay</code> plus a
+          profile only as an intentional harsher delay stress test.
         </div>
       </section>
 
@@ -1315,6 +1398,21 @@ uv run cartpole-robot-train --config configs/algorithms/ppo.toml</code></pre>
             <h3>Train delay history</h3>
             <pre><code>uv run cartpole-robot-train \
   --config configs/algorithms/td3_robust_delay_history.toml</code></pre>
+          </div>
+          <div class="card">
+            <h3>Evaluate control-loop profile</h3>
+            <pre><code>uv run cartpole-robot-robust-eval \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenarios hardware_mild \
+  --control-loop-profile policy_25hz_hardware_safe \
+  --observation-history-steps 4 \
+  --action-history-steps 3</code></pre>
+          </div>
+          <div class="card">
+            <h3>Train realistic loop later</h3>
+            <pre><code>uv run cartpole-robot-train \
+  --config configs/algorithms/td3_realistic_control_loop_history.toml</code></pre>
           </div>
           <div class="card">
             <h3>Watch a trained policy</h3>

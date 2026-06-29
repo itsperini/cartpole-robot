@@ -16,6 +16,7 @@ from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import NormalActionNoise
 
 from cartpole_robot.algorithms import ALGORITHM_CLASSES, normalize_algorithm
+from cartpole_robot.control_loop import control_loop_profile_names, wrap_control_loop
 from cartpole_robot.registration import ENV_ID, make_env, register_env
 from cartpole_robot.robustness import make_robust_env, scenario_names, wrap_history
 
@@ -32,6 +33,7 @@ COMMON_DEFAULTS: dict[str, Any] = {
     "device": "auto",
     "n_envs": 1,
     "robust_scenario": "clean",
+    "control_loop_profile": "none",
     "observation_history_steps": 1,
     "action_history_steps": 0,
 }
@@ -93,6 +95,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         choices=scenario_names(),
         default=None,
         help="Optional robust-simulation scenario for training and eval.",
+    )
+    parser.add_argument(
+        "--control-loop-profile",
+        choices=control_loop_profile_names(),
+        default=None,
+        help="Optional hardware-like control loop timing profile.",
     )
     parser.add_argument(
         "--observation-history-steps",
@@ -179,6 +187,7 @@ def resolved_config(args: argparse.Namespace) -> dict[str, Any]:
         "device",
         "n_envs",
         "robust_scenario",
+        "control_loop_profile",
         "observation_history_steps",
         "action_history_steps",
         "buffer_size",
@@ -240,11 +249,17 @@ def make_training_env(config: dict[str, Any]):
         raise ValueError("n_envs must be positive.")
 
     robust_scenario = str(config.get("robust_scenario", "clean"))
+    control_loop_profile = str(config.get("control_loop_profile", "none"))
     observation_history_steps = int(config.get("observation_history_steps", 1))
     action_history_steps = int(config.get("action_history_steps", 0))
     if n_envs == 1:
         if robust_scenario == "clean":
             env = make_env(max_episode_steps=int(config["max_steps"]))
+            env = wrap_control_loop(
+                env,
+                profile=control_loop_profile,
+                seed=int(config["seed"]),
+            )
             env = wrap_history(
                 env,
                 observation_history_steps=observation_history_steps,
@@ -255,13 +270,18 @@ def make_training_env(config: dict[str, Any]):
                 robust_scenario,
                 max_episode_steps=int(config["max_steps"]),
                 seed=int(config["seed"]),
+                control_loop_profile=control_loop_profile,
                 observation_history_steps=observation_history_steps,
                 action_history_steps=action_history_steps,
             )
         return Monitor(env)
 
     if robust_scenario == "clean":
-        if observation_history_steps == 1 and action_history_steps == 0:
+        if (
+            control_loop_profile == "none"
+            and observation_history_steps == 1
+            and action_history_steps == 0
+        ):
             register_env()
             return make_vec_env(
                 ENV_ID,
@@ -272,6 +292,11 @@ def make_training_env(config: dict[str, Any]):
 
         def make_clean_env():
             env = make_env(max_episode_steps=int(config["max_steps"]))
+            env = wrap_control_loop(
+                env,
+                profile=control_loop_profile,
+                seed=int(config["seed"]),
+            )
             return wrap_history(
                 env,
                 observation_history_steps=observation_history_steps,
@@ -285,6 +310,7 @@ def make_training_env(config: dict[str, Any]):
             robust_scenario,
             max_episode_steps=int(config["max_steps"]),
             seed=int(config["seed"]),
+            control_loop_profile=control_loop_profile,
             observation_history_steps=observation_history_steps,
             action_history_steps=action_history_steps,
         )
@@ -294,10 +320,16 @@ def make_training_env(config: dict[str, Any]):
 
 def make_eval_env(config: dict[str, Any]) -> Monitor:
     robust_scenario = str(config.get("robust_scenario", "clean"))
+    control_loop_profile = str(config.get("control_loop_profile", "none"))
     observation_history_steps = int(config.get("observation_history_steps", 1))
     action_history_steps = int(config.get("action_history_steps", 0))
     if robust_scenario == "clean":
         env = make_env(max_episode_steps=int(config["max_steps"]))
+        env = wrap_control_loop(
+            env,
+            profile=control_loop_profile,
+            seed=int(config["seed"]) + 1_000_000,
+        )
         env = wrap_history(
             env,
             observation_history_steps=observation_history_steps,
@@ -310,6 +342,7 @@ def make_eval_env(config: dict[str, Any]) -> Monitor:
             robust_scenario,
             max_episode_steps=int(config["max_steps"]),
             seed=int(config["seed"]) + 1_000_000,
+            control_loop_profile=control_loop_profile,
             observation_history_steps=observation_history_steps,
             action_history_steps=action_history_steps,
         )

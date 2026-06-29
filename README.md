@@ -4,7 +4,7 @@ MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized contin
 
 This is not the standard `CartPole-v1` task. The goal is to start with the pole hanging downward, apply horizontal force to the cart, swing the pole upright, and stabilize it there.
 
-For the learning roadmap from classic RL to visual control, sim2real, ROS 2 hardware, and VLA-style systems, open [docs/index.html](docs/index.html).
+For the learning roadmap from classic RL to visual control, sim2real, ROS 2 hardware, and VLA-style systems, open [docs/index.html](docs/index.html). For the current checkpoint matrix and next experiment plan, open [docs/status.html](docs/status.html).
 
 ## Why Custom
 
@@ -58,6 +58,45 @@ On hardware, measure the time from encoder sampling to policy inference to motor
 driver update, then divide that latency by 40 ms to estimate the equivalent number
 of simulated ticks. If the real loop runs at a different policy rate, recompute
 the tick duration from that real control period.
+
+### Control-Loop Profiles
+
+Hardware-like command and sensing effects are opt-in. The default profile is
+`none`, which preserves the behavior of the earlier trainers, evaluators,
+recorders, and checkpoints.
+
+Available profiles:
+
+```text
+none                       no added timing or actuator effects
+policy_25hz_latency        one-tick observation delay and one-tick action delay
+policy_25hz_jitter         one-tick delay plus occasional extra timing jitter
+policy_25hz_hardware_safe  latency, jitter, slew limit, deadband, filtering, quantization
+policy_25hz_hardware_delay two-tick delay plus hardware-safe command/sensor effects
+```
+
+Evaluate an existing history policy under a hardware-like control loop:
+
+```bash
+uv run cartpole-robot-robust-eval \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenarios hardware_mild \
+  --control-loop-profile policy_25hz_hardware_safe \
+  --observation-history-steps 4 \
+  --action-history-steps 3
+```
+
+Train a new policy later with the realistic control loop and history inputs:
+
+```bash
+uv run cartpole-robot-train \
+  --config configs/algorithms/td3_realistic_control_loop_history.toml
+```
+
+Use `hardware_mild` plus a control-loop profile to combine physical variation
+with timing effects. Use `hardware_delay` plus a control-loop profile only when
+you intentionally want a harsher double-delay stress test.
 
 ## Setup
 
@@ -397,6 +436,7 @@ src/cartpole_robot/
   assets/cartpole_swingup.xml     MuJoCo cart, rail, pole, hinge, and motor model
   registration.py                 registers CartPoleSwingUp-v0
   algorithms.py                   shared TD3/SAC/PPO loading helpers
+  control_loop.py                 optional hardware-like delay, jitter, and filtering
   train_policy.py                 TD3/SAC/PPO training entry point
   train_td3.py                    compatibility wrapper for the policy trainer
   evaluate_policy.py              reward, stability, and effort metrics

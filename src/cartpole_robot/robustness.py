@@ -7,6 +7,7 @@ from typing import Any
 import gymnasium as gym
 import numpy as np
 
+from cartpole_robot.control_loop import wrap_control_loop
 from cartpole_robot.registration import DEFAULT_MAX_EPISODE_STEPS, make_env
 
 
@@ -567,6 +568,7 @@ def make_robust_env(
     render_mode: str | None = None,
     max_episode_steps: int | None = DEFAULT_MAX_EPISODE_STEPS,
     seed: int | None = None,
+    control_loop_profile: str = "none",
     observation_history_steps: int = 1,
     action_history_steps: int = 0,
     **kwargs: Any,
@@ -579,6 +581,11 @@ def make_robust_env(
     robust_env = RobustnessWrapper(
         env,
         resolve_robustness_config(scenario),
+        seed=seed,
+    )
+    robust_env = wrap_control_loop(
+        robust_env,
+        profile=control_loop_profile,
         seed=seed,
     )
     return wrap_history(

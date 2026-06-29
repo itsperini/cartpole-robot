@@ -1,0 +1,543 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>cartpole-robot: Project Status</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f8fb;
+        --ink: #172033;
+        --muted: #5d697a;
+        --line: #d8dee8;
+        --panel: #ffffff;
+        --blue: #2563eb;
+        --teal: #0f766e;
+        --green: #15803d;
+        --amber: #b45309;
+        --rose: #be123c;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 28px 18px 56px;
+      }
+
+      section {
+        padding: 34px 0;
+        border-top: 1px solid var(--line);
+      }
+
+      section:first-child {
+        border-top: 0;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        max-width: 820px;
+        font-size: clamp(2.1rem, 4vw, 4.4rem);
+        line-height: 1;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 12px;
+        font-size: clamp(1.5rem, 2.3vw, 2.15rem);
+        line-height: 1.1;
+        letter-spacing: 0;
+      }
+
+      h3 {
+        margin-bottom: 7px;
+        font-size: 1.05rem;
+      }
+
+      p {
+        color: var(--muted);
+      }
+
+      a {
+        color: var(--blue);
+      }
+
+      code,
+      pre {
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      }
+
+      pre {
+        margin: 12px 0 0;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        background: #111827;
+        color: #e5e7eb;
+        padding: 14px;
+        font-size: 0.9rem;
+      }
+
+      .hero {
+        min-height: 48vh;
+        display: grid;
+        align-content: center;
+        gap: 18px;
+      }
+
+      .hero p {
+        max-width: 780px;
+        font-size: 1.08rem;
+      }
+
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .tag {
+        border: 1px solid var(--line);
+        background: #ffffff;
+        color: #334155;
+        padding: 6px 10px;
+        font-size: 0.88rem;
+        text-decoration: none;
+      }
+
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+
+      .two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        padding: 18px;
+      }
+
+      .metric strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .metric span {
+        color: var(--muted);
+      }
+
+      .note {
+        margin-top: 16px;
+        border-left: 4px solid var(--blue);
+        background: #eff6ff;
+        padding: 14px 16px;
+        color: #1e3a8a;
+      }
+
+      .stack-gap {
+        margin-top: 16px;
+      }
+
+      .table-scroll {
+        max-width: 100%;
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.94rem;
+      }
+
+      th,
+      td {
+        border: 1px solid var(--line);
+        padding: 11px 12px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: #eef2f7;
+      }
+
+      .status {
+        display: inline-block;
+        min-width: 94px;
+        padding: 4px 8px;
+        border: 1px solid var(--line);
+        background: #f8fafc;
+        color: #334155;
+        text-align: center;
+        font-size: 0.86rem;
+      }
+
+      .done {
+        border-color: #86efac;
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .current {
+        border-color: #93c5fd;
+        background: #dbeafe;
+        color: #1d4ed8;
+      }
+
+      .later {
+        border-color: #fcd34d;
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .diagram {
+        width: 100%;
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        background: #fbfcff;
+        padding: 8px;
+      }
+
+      svg text {
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        fill: var(--ink);
+      }
+
+      @media (max-width: 820px) {
+        .two,
+        .three {
+          grid-template-columns: 1fr;
+        }
+
+        .hero {
+          min-height: auto;
+          padding-top: 26px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="tags">
+          <a class="tag" href="index.html">Main docs</a>
+          <span class="tag">Status snapshot</span>
+          <span class="tag">Opt-in experiments</span>
+          <span class="tag">Sim2real preparation</span>
+        </div>
+        <h1>Project status and next control-loop chapter</h1>
+        <p>
+          This page tracks the current cart-pole learning path without replacing older
+          experiments. The rule is simple: previous commands, configs, checkpoints, and
+          videos stay reproducible; newer realism layers are selected explicitly.
+        </p>
+      </section>
+
+      <section>
+        <h2>Status Snapshot</h2>
+        <div class="grid three">
+          <div class="card metric">
+            <strong>7</strong>
+            <span>Promoted policy checkpoints kept under <code>models/best/</code>.</span>
+          </div>
+          <div class="card metric">
+            <strong>3</strong>
+            <span>Separate robust tracks: pushes, hardware randomization, and delay history.</span>
+          </div>
+          <div class="card metric">
+            <strong>0</strong>
+            <span>Default behavior changes from the new control-loop profiles.</span>
+          </div>
+        </div>
+        <div class="note">
+          The new control-loop wrapper defaults to <code>none</code>. That means old
+          training, evaluation, recording, and watching commands keep the same behavior
+          unless <code>--control-loop-profile</code> is provided.
+        </div>
+      </section>
+
+      <section>
+        <h2>Milestone Map</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Milestone</th>
+                <th>Status</th>
+                <th>Current artifact</th>
+                <th>What it teaches</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Clean swing-up</td>
+                <td><span class="status done">done</span></td>
+                <td><code>td3</code>, <code>sac</code>, and <code>ppo</code> clean checkpoints</td>
+                <td>Basic continuous-control RL with normalized force actions.</td>
+              </tr>
+              <tr>
+                <td>Push recovery</td>
+                <td><span class="status done">done first pass</span></td>
+                <td><code>ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip</code></td>
+                <td>Recovering from external impulses without changing the task.</td>
+              </tr>
+              <tr>
+                <td>Hardware randomization</td>
+                <td><span class="status done">done first pass</span></td>
+                <td><code>td3_cartpole_swingup_robust_hardware_mild_best_20260629-020520.zip</code></td>
+                <td>Mass, damping, friction, force-limit, noise, and push variation.</td>
+              </tr>
+              <tr>
+                <td>Delay history</td>
+                <td><span class="status done">specialized</span></td>
+                <td><code>td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip</code></td>
+                <td>Using recent observations and actions when the loop is delayed.</td>
+              </tr>
+              <tr>
+                <td>Realistic control loop</td>
+                <td><span class="status current">current</span></td>
+                <td><code>control_loop.py</code> and new opt-in configs</td>
+                <td>Latency, jitter, slew-rate limits, deadband, filtering, and quantization.</td>
+              </tr>
+              <tr>
+                <td>Visual RL</td>
+                <td><span class="status later">later</span></td>
+                <td>Not started</td>
+                <td>Camera-based policies after state-based robustness is better understood.</td>
+              </tr>
+              <tr>
+                <td>Hardware deployment</td>
+                <td><span class="status later">last</span></td>
+                <td>Not started</td>
+                <td>ROS 2 bridge, safety supervisor, motor interface, and real measurements.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Modular Experiment Stack</h2>
+        <p>
+          The project now separates physical variation from control-loop behavior. This
+          makes it easier to reproduce old results and to combine stressors intentionally.
+        </p>
+        <div class="diagram stack-gap" aria-label="Modular experiment stack diagram">
+          <svg width="1060" height="350" viewBox="0 0 1060 350" role="img">
+            <defs>
+              <marker
+                id="arrow"
+                markerWidth="10"
+                markerHeight="8"
+                refX="9"
+                refY="4"
+                orient="auto"
+              >
+                <path d="M0,0 L10,4 L0,8 Z" fill="#526071"></path>
+              </marker>
+            </defs>
+            <rect x="60" y="118" width="180" height="82" rx="8" fill="#dbeafe" stroke="#2563eb"></rect>
+            <text x="150" y="150" text-anchor="middle" font-weight="800">MuJoCo</text>
+            <text x="150" y="174" text-anchor="middle" font-size="13">cart-pole physics</text>
+
+            <rect x="295" y="118" width="210" height="82" rx="8" fill="#ccfbf1" stroke="#0f766e"></rect>
+            <text x="400" y="150" text-anchor="middle" font-weight="800">Robustness wrapper</text>
+            <text x="400" y="174" text-anchor="middle" font-size="13">noise, friction, pushes</text>
+
+            <rect x="560" y="118" width="220" height="82" rx="8" fill="#fef3c7" stroke="#d97706"></rect>
+            <text x="670" y="150" text-anchor="middle" font-weight="800">Control-loop profile</text>
+            <text x="670" y="174" text-anchor="middle" font-size="13">delay, jitter, filters</text>
+
+            <rect x="835" y="118" width="165" height="82" rx="8" fill="#dcfce7" stroke="#16a34a"></rect>
+            <text x="918" y="150" text-anchor="middle" font-weight="800">History wrapper</text>
+            <text x="918" y="174" text-anchor="middle" font-size="13">obs/action memory</text>
+
+            <path d="M240 159 H295" stroke="#526071" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path d="M505 159 H560" stroke="#526071" stroke-width="2" marker-end="url(#arrow)"></path>
+            <path d="M780 159 H835" stroke="#526071" stroke-width="2" marker-end="url(#arrow)"></path>
+
+            <rect x="360" y="260" width="340" height="54" rx="8" fill="#f8fafc" stroke="#94a3b8"></rect>
+            <text x="530" y="292" text-anchor="middle" font-weight="800">
+              Stable-Baselines3 policy sees final observation
+            </text>
+
+            <path
+              d="M918 200 C918 248 700 236 700 260"
+              fill="none"
+              stroke="#526071"
+              stroke-width="2"
+              marker-end="url(#arrow)"
+            ></path>
+          </svg>
+        </div>
+        <div class="note">
+          For clean reproduction, use <code>robust_scenario = "clean"</code> and
+          <code>control_loop_profile = "none"</code>. For hardware-like testing without
+          double-counting delay, prefer <code>hardware_mild</code> plus a control-loop
+          profile. Use <code>hardware_delay</code> plus a profile only as an intentional
+          stress test.
+        </div>
+      </section>
+
+      <section>
+        <h2>Control-Loop Profiles</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Profile</th>
+                <th>Behavior</th>
+                <th>Use it for</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>none</code></td>
+                <td>No added timing or actuator effects.</td>
+                <td>Reproducing previous results.</td>
+              </tr>
+              <tr>
+                <td><code>policy_25hz_latency</code></td>
+                <td>One delayed observation tick and one delayed action tick.</td>
+                <td>First latency sanity check at the current 25 Hz policy rate.</td>
+              </tr>
+              <tr>
+                <td><code>policy_25hz_jitter</code></td>
+                <td>One-tick latency plus occasional extra one-tick jitter.</td>
+                <td>Testing whether a policy survives variable timing.</td>
+              </tr>
+              <tr>
+                <td><code>policy_25hz_hardware_safe</code></td>
+                <td>Latency, jitter, action slew-rate limit, deadband, low-pass filtering, and encoder-like quantization.</td>
+                <td>Evaluating existing policies under a gentler hardware-facing loop.</td>
+              </tr>
+              <tr>
+                <td><code>policy_25hz_hardware_delay</code></td>
+                <td>Two-tick delay plus the same hardware-facing command and sensor effects.</td>
+                <td>Training a delay-history policy that is closer to the eventual hardware loop.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Preserved Checkpoints</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Checkpoint</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>models/best/td3_cartpole_swingup_best_20260628-012620.zip</code></td>
+                <td>Clean TD3 swing-up baseline.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/sac_cartpole_swingup_best_20260629-005105.zip</code></td>
+                <td>Clean SAC swing-up baseline.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/ppo_cartpole_swingup_best_20260629-010531.zip</code></td>
+                <td>Clean PPO swing-up baseline.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/ppo_cartpole_swingup_robust_pushes_best_20260629-012559.zip</code></td>
+                <td>PPO policy fine-tuned for push recovery.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/sac_cartpole_swingup_robust_hardware_mild_best_20260629-013859.zip</code></td>
+                <td>SAC hardware-randomized comparison checkpoint.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/td3_cartpole_swingup_robust_hardware_mild_best_20260629-020520.zip</code></td>
+                <td>Current best policy for hardware-style randomization without major delay.</td>
+              </tr>
+              <tr>
+                <td><code>models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip</code></td>
+                <td>Specialized TD3 policy for delayed control with history inputs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Next Recommended Steps</h2>
+        <div class="grid three">
+          <div class="card">
+            <h3>1. Evaluate before training</h3>
+            <p>
+              Run the existing promoted checkpoints under the new control-loop profiles
+              to see which failure modes are already solved.
+            </p>
+          </div>
+          <div class="card">
+            <h3>2. Train one focused policy</h3>
+            <p>
+              Start with <code>configs/algorithms/td3_realistic_control_loop_history.toml</code>
+              after the evaluation sweep confirms the gap.
+            </p>
+          </div>
+          <div class="card">
+            <h3>3. Delay hardware</h3>
+            <p>
+              Keep the real cart-pole last until the simulator has a credible timing,
+              friction, disturbance, and safety story.
+            </p>
+          </div>
+        </div>
+        <div class="grid two stack-gap">
+          <div class="card">
+            <h3>Evaluate existing TD3 history policy</h3>
+            <pre><code>uv run cartpole-robot-robust-eval \
+  --algo td3 \
+  --model models/best/td3_cartpole_swingup_delay_history_obs4_act3_best_20260629-023430.zip \
+  --scenarios hardware_mild \
+  --control-loop-profile policy_25hz_hardware_safe \
+  --observation-history-steps 4 \
+  --action-history-steps 3</code></pre>
+          </div>
+          <div class="card">
+            <h3>Train a realistic loop policy later</h3>
+            <pre><code>uv run cartpole-robot-train \
+  --config configs/algorithms/td3_realistic_control_loop_history.toml</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

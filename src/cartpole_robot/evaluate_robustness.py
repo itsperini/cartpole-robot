@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cartpole_robot.algorithms import load_policy
+from cartpole_robot.control_loop import control_loop_profile_names
 from cartpole_robot.evaluate_policy import (
     STABLE_ANGULAR_VELOCITY,
     UPRIGHT_THRESHOLD_RADIANS,
@@ -86,6 +87,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--stochastic", action="store_true")
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--control-loop-profile",
+        choices=control_loop_profile_names(),
+        default="none",
+        help="Optional hardware-like control loop timing profile.",
+    )
     parser.add_argument(
         "--observation-history-steps",
         type=int,
@@ -224,6 +231,7 @@ def evaluate_scenario(
     seed: int,
     max_steps: int,
     deterministic: bool,
+    control_loop_profile: str,
     observation_history_steps: int,
     action_history_steps: int,
 ) -> dict[str, Any]:
@@ -231,6 +239,7 @@ def evaluate_scenario(
         scenario,
         max_episode_steps=max_steps,
         seed=seed,
+        control_loop_profile=control_loop_profile,
         observation_history_steps=observation_history_steps,
         action_history_steps=action_history_steps,
     )
@@ -359,6 +368,7 @@ def main(argv: Sequence[str] | None = None) -> None:
             seed=args.seed + index * 10_000,
             max_steps=args.max_steps,
             deterministic=deterministic,
+            control_loop_profile=args.control_loop_profile,
             observation_history_steps=args.observation_history_steps,
             action_history_steps=args.action_history_steps,
         )
@@ -373,6 +383,7 @@ def main(argv: Sequence[str] | None = None) -> None:
         "model": str(args.model),
         "episodes_per_scenario": args.episodes,
         "max_steps": args.max_steps,
+        "control_loop_profile": args.control_loop_profile,
         "observation_history_steps": args.observation_history_steps,
         "action_history_steps": args.action_history_steps,
         "scenarios": results,

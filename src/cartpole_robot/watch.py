@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from cartpole_robot.algorithms import load_policy
+from cartpole_robot.control_loop import control_loop_profile_names, wrap_control_loop
 from cartpole_robot.registration import ENV_ID, make_env
 from cartpole_robot.robustness import make_robust_env, scenario_names, wrap_history
 
@@ -40,6 +41,12 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="Robustness scenario to render.",
     )
     parser.add_argument(
+        "--control-loop-profile",
+        choices=control_loop_profile_names(),
+        default="none",
+        help="Optional hardware-like control loop timing profile.",
+    )
+    parser.add_argument(
         "--observation-history-steps",
         type=int,
         default=1,
@@ -61,6 +68,11 @@ def make_watch_env(args: argparse.Namespace):
     }
     if args.scenario == "clean":
         env = make_env(**env_kwargs)
+        env = wrap_control_loop(
+            env,
+            profile=args.control_loop_profile,
+            seed=args.seed,
+        )
         return wrap_history(
             env,
             observation_history_steps=args.observation_history_steps,
@@ -70,6 +82,7 @@ def make_watch_env(args: argparse.Namespace):
     return make_robust_env(
         args.scenario,
         seed=args.seed,
+        control_loop_profile=args.control_loop_profile,
         observation_history_steps=args.observation_history_steps,
         action_history_steps=args.action_history_steps,
         **env_kwargs,
@@ -93,6 +106,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     print(f"\nWatching {algorithm.upper()} policy on {ENV_ID}")
     print(f"Model: {args.model}")
     print(f"Scenario: {args.scenario}")
+    print(f"Control loop: {args.control_loop_profile}")
 
     try:
         for episode in range(1, args.episodes + 1):
