@@ -14,8 +14,6 @@ The plots below are from saved evaluations in the [visual project guide](docs/in
 
 ### TD3, SAC, and PPO baselines
 
-![Mean reward and upright/stable time for TD3, SAC, and PPO on clean swing-up](docs/assets/algorithm_metrics_comparison.png)
-
 All three trained policies reach 100% success in the clean, 500-step evaluation: mean rewards are **1417** for TD3, **1411** for SAC, and **1420** for PPO. PPO needed a longer training continuation to match the off-policy baselines. [Watch the three learned policies](docs/index.html#learned-policy-rollouts) or read the [TD3](experiments/01_td3_baseline/README.md), [SAC](experiments/02_sac_baseline/README.md), and [PPO](experiments/03_ppo_baseline/README.md) experiment notes.
 
 ### Push recovery
