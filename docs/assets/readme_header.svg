@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620" role="img" aria-labelledby="title desc">
+  <title id="title">Cart-pole swing-up experiment loop</title>
+  <desc id="desc">A MuJoCo cart-pole feeds TD3, SAC, and PPO training. The policies are evaluated for reward, stability, and effort, then stress-tested with noise, delay, and pushes before the next training iteration.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1326"/>
+      <stop offset="1" stop-color="#101b32"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#3dd7c8" stop-opacity=".15"/>
+      <stop offset="1" stop-color="#3dd7c8" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="cart" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff826d"/>
+      <stop offset="1" stop-color="#df5360"/>
+    </linearGradient>
+    <linearGradient id="pole" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#24b3b7"/>
+      <stop offset="1" stop-color="#7aeee0"/>
+    </linearGradient>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" fill="none" stroke="#8ca5c2" stroke-opacity=".07" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1600" height="620" fill="url(#background)"/>
+  <rect width="1600" height="620" fill="url(#grid)"/>
+  <ellipse cx="350" cy="255" rx="480" ry="400" fill="url(#glow)"/>
+  <path d="M80 232H1520" stroke="#35445c" stroke-opacity=".7"/>
+
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="80" y="72" fill="#65ded1" font-size="19" font-weight="700" letter-spacing="4">REINFORCEMENT LEARNING  /  CONTINUOUS CONTROL</text>
+    <text x="76" y="151" fill="#f4f8ff" font-size="67" font-weight="700" letter-spacing="-2">Cart-pole swing-up</text>
+    <text x="80" y="203" fill="#a8b9d0" font-size="26">One simulator. Three algorithms. A series of tougher control tests.</text>
+
+    <!-- Simulation -->
+    <rect x="80" y="270" width="326" height="258" rx="20" fill="#152138" stroke="#345366" stroke-width="2"/>
+    <rect x="80" y="270" width="326" height="5" rx="2.5" fill="#62dfd1"/>
+    <text x="106" y="311" fill="#62dfd1" font-size="17" font-weight="700" letter-spacing="2">01  SIMULATE</text>
+    <text x="106" y="349" fill="#f4f8ff" font-size="29" font-weight="700">MuJoCo swing-up</text>
+    <path d="M119 445H367" stroke="#7187b0" stroke-width="5" stroke-linecap="round"/>
+    <path d="M248 441V474" stroke="#55d5ca" stroke-opacity=".32" stroke-width="9" stroke-linecap="round"/>
+    <path d="M248 441L199 398" stroke="#55d5ca" stroke-opacity=".43" stroke-width="9" stroke-linecap="round"/>
+    <path d="M248 441V377" stroke="url(#pole)" stroke-width="10" stroke-linecap="round"/>
+    <path d="M197 397A68 68 0 0 1 248 373" fill="none" stroke="#55d5ca" stroke-opacity=".5" stroke-width="2" stroke-dasharray="5 6"/>
+    <rect x="220" y="431" width="56" height="29" rx="5" fill="url(#cart)"/>
+    <circle cx="248" cy="440" r="6" fill="#0d1a2d" stroke="#9ef2e5" stroke-width="2"/>
+    <text x="106" y="503" fill="#9fb0c7" font-size="20">continuous force control</text>
+
+    <!-- Training -->
+    <rect x="450" y="270" width="326" height="258" rx="20" fill="#152138" stroke="#465072" stroke-width="2"/>
+    <rect x="450" y="270" width="326" height="5" rx="2.5" fill="#b99aff"/>
+    <text x="476" y="311" fill="#b99aff" font-size="17" font-weight="700" letter-spacing="2">02  TRAIN</text>
+    <text x="476" y="349" fill="#f4f8ff" font-size="29" font-weight="700">Three RL policies</text>
+    <rect x="476" y="385" width="80" height="63" rx="12" fill="#332b55" stroke="#806cb7"/>
+    <rect x="573" y="385" width="80" height="63" rx="12" fill="#233c59" stroke="#5a91c5"/>
+    <rect x="670" y="385" width="80" height="63" rx="12" fill="#493649" stroke="#bd788b"/>
+    <text x="516" y="425" fill="#eee6ff" font-size="23" font-weight="700" text-anchor="middle">TD3</text>
+    <text x="613" y="425" fill="#e1efff" font-size="23" font-weight="700" text-anchor="middle">SAC</text>
+    <text x="710" y="425" fill="#ffe6ea" font-size="23" font-weight="700" text-anchor="middle">PPO</text>
+    <text x="476" y="503" fill="#9fb0c7" font-size="20">shared environment + configs</text>
+
+    <!-- Evaluation -->
+    <rect x="820" y="270" width="326" height="258" rx="20" fill="#152138" stroke="#66513f" stroke-width="2"/>
+    <rect x="820" y="270" width="326" height="5" rx="2.5" fill="#ffbc78"/>
+    <text x="846" y="311" fill="#ffbc78" font-size="17" font-weight="700" letter-spacing="2">03  EVALUATE</text>
+    <text x="846" y="349" fill="#f4f8ff" font-size="29" font-weight="700">Measure control</text>
+    <path d="M850 455H1112" stroke="#5b6c87" stroke-width="2"/>
+    <rect x="865" y="405" width="41" height="50" rx="5" fill="#65dfd1"/>
+    <rect x="929" y="388" width="41" height="67" rx="5" fill="#8faef9"/>
+    <rect x="993" y="418" width="41" height="37" rx="5" fill="#ffbc78"/>
+    <path d="M1061 422L1080 400 1096 407 1111 380" fill="none" stroke="#ffbc78" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="846" y="503" fill="#9fb0c7" font-size="20">reward · stability · effort</text>
+
+    <!-- Stress tests -->
+    <rect x="1190" y="270" width="326" height="258" rx="20" fill="#152138" stroke="#476357" stroke-width="2"/>
+    <rect x="1190" y="270" width="326" height="5" rx="2.5" fill="#82db9d"/>
+    <text x="1216" y="311" fill="#82db9d" font-size="17" font-weight="700" letter-spacing="2">04  STRESS TEST</text>
+    <text x="1216" y="349" fill="#f4f8ff" font-size="29" font-weight="700">Probe robustness</text>
+    <rect x="1216" y="384" width="274" height="25" rx="6" fill="#263a49"/>
+    <rect x="1216" y="418" width="274" height="25" rx="6" fill="#263a49"/>
+    <rect x="1216" y="452" width="274" height="25" rx="6" fill="#263a49"/>
+    <path d="M1225 396H1263L1273 387 1283 404 1293 390 1303 398H1328" fill="none" stroke="#82db9d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1225 430H1270V440H1310V430H1328" fill="none" stroke="#82db9d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M1225 465H1260L1271 456 1282 465H1328" fill="none" stroke="#82db9d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="1350" y="401" fill="#d7e8dd" font-size="17">noise</text>
+    <text x="1350" y="435" fill="#d7e8dd" font-size="17">delay</text>
+    <text x="1350" y="469" fill="#d7e8dd" font-size="17">pushes</text>
+    <text x="1216" y="503" fill="#9fb0c7" font-size="20">sim-to-real stress scenarios</text>
+
+    <!-- Forward flow and training feedback -->
+    <path d="M411 399H433M781 399H803M1151 399H1173" fill="none" stroke="#7389a8" stroke-width="3"/>
+    <path d="M433 393L443 399 433 405ZM803 393L813 399 803 405ZM1173 393L1183 399 1173 405Z" fill="#7389a8"/>
+    <path d="M1353 536V565H613V544" fill="none" stroke="#54d7ca" stroke-opacity=".75" stroke-width="2.5"/>
+    <path d="M607 545L613 535 619 545Z" fill="#54d7ca"/>
+    <rect x="866" y="547" width="157" height="35" rx="17" fill="#142b39" stroke="#2f776f"/>
+    <text x="944" y="570" fill="#84e6d8" font-size="17" font-weight="700" text-anchor="middle" letter-spacing="1.5">ITERATE</text>
+  </g>
+</svg>

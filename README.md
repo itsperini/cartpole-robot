@@ -1,6 +1,6 @@
 # cartpole-robot
 
-![Diagram of the MuJoCo cart-pole experiment loop: train TD3, SAC, and PPO, then evaluate and document their behavior](docs/assets/algorithm_comparison_loop.png)
+![Cart-pole swing-up experiment loop: simulate in MuJoCo, train TD3/SAC/PPO, evaluate control, and stress-test robustness](docs/assets/readme_header.svg)
 
 MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized continuous actions, and model-free RL baselines.
 
