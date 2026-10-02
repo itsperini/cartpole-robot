@@ -1,10 +1,38 @@
 # cartpole-robot
 
+![Diagram of the MuJoCo cart-pole experiment loop: train TD3, SAC, and PPO, then evaluate and document their behavior](docs/assets/algorithm_comparison_loop.png)
+
 MuJoCo cart-pole swing-up with a custom Gymnasium environment, normalized continuous actions, and model-free RL baselines.
 
 This is not the standard `CartPole-v1` task. The goal is to start with the pole hanging downward, apply horizontal force to the cart, swing the pole upright, and stabilize it there.
 
 For the learning roadmap from classic RL to visual control, sim2real, ROS 2 hardware, and VLA-style systems, open [docs/index.html](docs/index.html). For the current checkpoint matrix and next experiment plan, open [docs/status.html](docs/status.html). For the chronological development log, open [docs/PROJECT_LOG.md](docs/PROJECT_LOG.md).
+
+## Experiments at a Glance
+
+The plots below are from saved evaluations in the [visual project guide](docs/index.html). The reported success rates are measured in simulation; the hardware-like scenarios add disturbances and timing effects to the MuJoCo environment.
+
+### TD3, SAC, and PPO baselines
+
+![Mean reward and upright/stable time for TD3, SAC, and PPO on clean swing-up](docs/assets/algorithm_metrics_comparison.png)
+
+All three trained policies reach 100% success in the clean, 500-step evaluation: mean rewards are **1417** for TD3, **1411** for SAC, and **1420** for PPO. PPO needed a longer training continuation to match the off-policy baselines. [Watch the three learned policies](docs/index.html#learned-policy-rollouts) or read the [TD3](experiments/01_td3_baseline/README.md), [SAC](experiments/02_sac_baseline/README.md), and [PPO](experiments/03_ppo_baseline/README.md) experiment notes.
+
+### Push recovery
+
+![Robustness evaluation of PPO after training with repeated pushes](docs/assets/ppo_robust_pushes_robustness.png)
+
+Training PPO with repeated pushes raises success on the `pushes` scenario from **75% to 95%** over 20 evaluation episodes. The combined-stressor result is still only **20%**, so this checkpoint is specifically for disturbance recovery. [See the paired push rollouts](docs/index.html#robust-sim-before-hardware).
+
+### Hardware variation and delay
+
+![Robustness evaluation of the TD3 policy trained with hardware-like variation](docs/assets/td3_hardware_mild_robustness.png)
+
+TD3 trained with hardware-like variation reaches **100% success** on `hardware_mild` over 20 episodes, but the two-tick `hardware_delay` scenario remains a failure case. The latter needs a controller that can use recent observations and actions.
+
+![Comparison of policies with and without observation and action history under two-tick delay](docs/assets/delay_strategy_comparison.png)
+
+With four observation frames and three previous actions, the TD3 history policy reaches **95% success** on `delay` and **60%** on `hardware_delay` over 20 episodes. These are specialized checkpoints for different conditions, not one universal controller. [Explore the robustness experiments and videos](docs/index.html#robust-sim-before-hardware).
 
 ## Why Custom
 
